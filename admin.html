@@ -3,27 +3,32 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AIFA Gestión Integral - Administración</title>
+  <title>Sistema de Capacitación - Administración</title>
   <link rel="stylesheet" href="assets/css/main.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <script type="module" src="assets/js/admin.js" defer></script>
 </head>
-<body class="theme-light">
+<body class="theme-light admin-shell">
   <header class="topbar">
     <div class="topbar__brand">
-      <span class="brand">AIFA Gestión Integral</span>
-      <span class="topbar__divider" aria-hidden="true">|</span>
-      <span class="topbar__subtitle">Administración de usuarios</span>
+      <img src="assets/AIFA_logo.png" alt="Logotipo AIFA" class="topbar__logo" />
+      <div class="topbar__titles">
+        <span class="brand">Sistema de Capacitación</span>
+        <span class="topbar__subtitle">Administración de usuarios</span>
+      </div>
     </div>
     <nav class="topbar__actions">
       <button id="btn-logout" class="btn btn--outline" type="button">Cerrar sesión</button>
     </nav>
   </header>
 
-  <main class="layout layout--spaced">
-    <section class="panel">
+  <main class="admin-main">
+    <section class="panel panel--elevated">
       <header class="panel__header">
-        <h1 class="panel__title">Usuarios</h1>
+        <div class="panel__heading">
+          <h1 class="panel__title">Administración de usuarios</h1>
+          <p class="panel__subtitle">Gestione los usuarios del sistema, sus roles y permisos.</p>
+        </div>
         <div class="panel__actions">
           <button id="btn-new-user" class="btn btn--primary" type="button">Nuevo usuario</button>
         </div>
@@ -31,7 +36,7 @@
       <div class="panel__toolbar">
         <div class="input-group">
           <label class="sr-only" for="search-user">Buscar usuario</label>
-          <input id="search-user" type="search" placeholder="Buscar por nombre, correo o área" />
+          <input id="search-user" type="search" placeholder="Buscar por nombre, correo, rol o puesto" />
         </div>
         <div class="input-group">
           <label for="filter-status">Estado</label>
