@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AIFA Gestión Integral - Administración</title>
+  <link rel="stylesheet" href="assets/css/main.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script type="module" src="assets/js/admin.js" defer></script>
+</head>
+<body class="theme-light">
+  <header class="topbar">
+    <div class="topbar__brand">
+      <span class="brand">AIFA Gestión Integral</span>
+      <span class="topbar__divider" aria-hidden="true">|</span>
+      <span class="topbar__subtitle">Administración de usuarios</span>
+    </div>
+    <nav class="topbar__actions">
+      <button id="btn-logout" class="btn btn--outline" type="button">Cerrar sesión</button>
+    </nav>
+  </header>
+
+  <main class="layout layout--spaced">
+    <section class="panel">
+      <header class="panel__header">
+        <h1 class="panel__title">Usuarios</h1>
+        <div class="panel__actions">
+          <button id="btn-new-user" class="btn btn--primary" type="button">Nuevo usuario</button>
+        </div>
+      </header>
+      <div class="panel__toolbar">
+        <div class="input-group">
+          <label class="sr-only" for="search-user">Buscar usuario</label>
+          <input id="search-user" type="search" placeholder="Buscar por nombre, correo o área" />
+        </div>
+        <div class="input-group">
+          <label for="filter-status">Estado</label>
+          <select id="filter-status">
+            <option value="todos">Todos</option>
+            <option value="activos">Activos</option>
+            <option value="inactivos">Inactivos</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrapper" role="region" aria-live="polite">
+        <table class="table" aria-describedby="panel-summary">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Correo</th>
+              <th>Área</th>
+              <th>Jerarquía</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="users-table-body">
+            <tr>
+              <td colspan="6" class="table__empty">Cargando usuarios…</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p id="panel-summary" class="panel__summary"></p>
+    </section>
+  </main>
+
+  <dialog id="user-dialog" class="dialog">
+    <form method="dialog" class="dialog__content" id="user-form">
+      <header class="dialog__header">
+        <h2 id="dialog-title">Nuevo usuario</h2>
+        <button type="button" class="btn btn--ghost" id="dialog-close" aria-label="Cerrar">×</button>
+      </header>
+      <section class="dialog__body">
+        <div class="form form--grid">
+          <div class="form__field">
+            <label for="user-name">Nombre</label>
+            <input id="user-name" name="nombre" required />
+          </div>
+          <div class="form__field">
+            <label for="user-lastname">Apellido</label>
+            <input id="user-lastname" name="apellido" required />
+          </div>
+          <div class="form__field">
+            <label for="user-email">Correo institucional</label>
+            <input id="user-email" name="correo" type="email" required />
+          </div>
+          <div class="form__field">
+            <label for="user-area">Área</label>
+            <select id="user-area" name="area_id" required></select>
+          </div>
+          <div class="form__field">
+            <label for="user-rank">Jerarquía</label>
+            <select id="user-rank" name="jerarquia_id" required></select>
+          </div>
+          <div class="form__field form__field--inline">
+            <input type="checkbox" id="user-active" name="activo" checked />
+            <label for="user-active">Usuario activo</label>
+          </div>
+          <div class="form__field">
+            <label for="user-role">Rol</label>
+            <select id="user-role" name="rol_id"></select>
+          </div>
+        </div>
+        <p class="form__hint" id="dialog-hint" role="status" aria-live="polite"></p>
+      </section>
+      <footer class="dialog__footer">
+        <button type="button" class="btn btn--ghost" id="dialog-cancel">Cancelar</button>
+        <button type="submit" class="btn btn--primary">Guardar</button>
+      </footer>
+    </form>
+  </dialog>
+</body>
+</html>
