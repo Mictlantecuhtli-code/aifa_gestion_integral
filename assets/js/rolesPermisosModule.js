@@ -1,4 +1,4 @@
-import { supabaseDb } from "../supabaseClient.js";
+import { supabaseDb } from "./supabaseClient.js";
 
 function createInitialState() {
   return {

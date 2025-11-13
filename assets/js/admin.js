@@ -1,9 +1,9 @@
 import { supabaseDb } from "./supabaseClient.js";
-import { initializeUsersModule } from "./modules/usersModule.js";
-import { initializeCursosModule } from "./modules/cursosModule.js";
-import { initializeRolesModule } from "./modules/rolesModule.js";
-import { initializePermisosModule } from "./modules/permisosModule.js";
-import { initializeRolesPermisosModule } from "./modules/rolesPermisosModule.js";
+import { initializeUsersModule } from "./usersModule.js";
+import { initializeCursosModule } from "./cursosModule.js";
+import { initializeRolesModule } from "./rolesModule.js";
+import { initializePermisosModule } from "./permisosModule.js";
+import { initializeRolesPermisosModule } from "./rolesPermisosModule.js";
 
 const selectors = {
   logoutButton: document.querySelector("#btn-logout"),
