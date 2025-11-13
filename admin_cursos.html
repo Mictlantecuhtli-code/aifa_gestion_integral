@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sistema de Capacitación - Administración</title>
+  <title>Sistema de Capacitación - Cursos</title>
   <link rel="stylesheet" href="assets/css/main.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-  <script type="module" src="assets/js/admin.js" defer></script>
+  <script type="module" src="assets/js/admin_cursos.js" defer></script>
 </head>
 <body class="theme-light admin-shell">
   <header class="topbar">
@@ -14,7 +14,7 @@
       <img src="assets/AIFA_logo.png" alt="Logotipo AIFA" class="topbar__logo" />
       <div class="topbar__titles">
         <span class="brand">Sistema de Capacitación</span>
-        <span class="topbar__subtitle">Administración de usuarios</span>
+        <span class="topbar__subtitle">Administración de cursos</span>
       </div>
     </div>
     <nav class="topbar__nav" aria-label="Menú de administración">
@@ -25,12 +25,12 @@
         </summary>
         <ul class="nav-dropdown__list">
           <li>
-            <a class="nav-menu__link nav-menu__link--active" href="admin.html" aria-current="page">
+            <a class="nav-menu__link" href="admin.html">
               <span class="nav-menu__label">Usuarios</span>
             </a>
           </li>
           <li>
-            <a class="nav-menu__link" href="admin_cursos.html">
+            <a class="nav-menu__link nav-menu__link--active" href="admin_cursos.html" aria-current="page">
               <span class="nav-menu__label">Cursos</span>
             </a>
           </li>
@@ -61,21 +61,21 @@
     <section class="panel panel--elevated">
       <header class="panel__header">
         <div class="panel__heading">
-          <h1 class="panel__title">Administración de usuarios</h1>
-          <p class="panel__subtitle">Gestione los usuarios del sistema, sus roles y permisos.</p>
+          <h1 class="panel__title">Gestión de cursos</h1>
+          <p class="panel__subtitle">Cree y administre los cursos disponibles en la plataforma.</p>
         </div>
         <div class="panel__actions">
-          <button id="btn-new-user" class="btn btn--primary" type="button">Nuevo usuario</button>
+          <button id="btn-new-course" class="btn btn--primary" type="button">Nuevo curso</button>
         </div>
       </header>
       <div class="panel__toolbar">
         <div class="input-group">
-          <label class="sr-only" for="search-user">Buscar usuario</label>
-          <input id="search-user" type="search" placeholder="Buscar por nombre, correo, rol o puesto" />
+          <label class="sr-only" for="search-course">Buscar curso</label>
+          <input id="search-course" type="search" placeholder="Buscar por nombre o descripción" />
         </div>
         <div class="input-group">
-          <label for="filter-status">Estado</label>
-          <select id="filter-status">
+          <label for="filter-course-status">Estado</label>
+          <select id="filter-course-status">
             <option value="todos">Todos</option>
             <option value="activos">Activos</option>
             <option value="inactivos">Inactivos</option>
@@ -83,69 +83,55 @@
         </div>
       </div>
       <div class="table-wrapper" role="region" aria-live="polite">
-        <table class="table" aria-describedby="panel-summary">
+        <table class="table" aria-describedby="courses-summary">
           <thead>
             <tr>
               <th>Nombre</th>
-              <th>Correo</th>
-              <th>Área</th>
-              <th>Jerarquía</th>
               <th>Estado</th>
+              <th>Creado</th>
               <th>Acciones</th>
             </tr>
           </thead>
-          <tbody id="users-table-body">
+          <tbody id="courses-table-body">
             <tr>
-              <td colspan="6" class="table__empty">Cargando usuarios…</td>
+              <td colspan="4" class="table__empty">Cargando cursos…</td>
             </tr>
           </tbody>
         </table>
       </div>
-      <p id="panel-summary" class="panel__summary"></p>
+      <p id="courses-summary" class="panel__summary"></p>
     </section>
   </main>
 
-  <dialog id="user-dialog" class="dialog">
-    <form method="dialog" class="dialog__content" id="user-form">
+  <dialog id="course-dialog" class="dialog">
+    <form method="dialog" class="dialog__content" id="course-form">
       <header class="dialog__header">
-        <h2 id="dialog-title">Nuevo usuario</h2>
-        <button type="button" class="btn btn--ghost" id="dialog-close" aria-label="Cerrar">×</button>
+        <h2 id="course-dialog-title">Nuevo curso</h2>
+        <button type="button" class="btn btn--ghost" id="course-dialog-close" aria-label="Cerrar">×</button>
       </header>
       <section class="dialog__body">
         <div class="form form--grid">
           <div class="form__field">
-            <label for="user-name">Nombre</label>
-            <input id="user-name" name="nombre" required />
+            <label for="course-name">Nombre del curso</label>
+            <input id="course-name" name="nombre" required />
           </div>
           <div class="form__field">
-            <label for="user-lastname">Apellido</label>
-            <input id="user-lastname" name="apellido" required />
+            <label for="course-description">Descripción</label>
+            <textarea id="course-description" name="descripcion" rows="4"></textarea>
           </div>
           <div class="form__field">
-            <label for="user-email">Correo institucional</label>
-            <input id="user-email" name="correo" type="email" required />
-          </div>
-          <div class="form__field">
-            <label for="user-area">Área</label>
-            <select id="user-area" name="area_id" required></select>
-          </div>
-          <div class="form__field">
-            <label for="user-rank">Jerarquía</label>
-            <select id="user-rank" name="jerarquia_id" required></select>
+            <label for="course-cover">Imagen de portada (URL)</label>
+            <input id="course-cover" name="imagen_portada" type="url" placeholder="https://" />
           </div>
           <div class="form__field form__field--inline">
-            <input type="checkbox" id="user-active" name="activo" checked />
-            <label for="user-active">Usuario activo</label>
-          </div>
-          <div class="form__field">
-            <label for="user-role">Rol</label>
-            <select id="user-role" name="rol_id"></select>
+            <input type="checkbox" id="course-active" name="activo" checked />
+            <label for="course-active">Curso activo</label>
           </div>
         </div>
-        <p class="form__hint" id="dialog-hint" role="status" aria-live="polite"></p>
+        <p class="form__hint" id="course-dialog-hint" role="status" aria-live="polite"></p>
       </section>
       <footer class="dialog__footer">
-        <button type="button" class="btn btn--ghost" id="dialog-cancel">Cancelar</button>
+        <button type="button" class="btn btn--ghost" id="course-dialog-cancel">Cancelar</button>
         <button type="submit" class="btn btn--primary">Guardar</button>
       </footer>
     </form>
