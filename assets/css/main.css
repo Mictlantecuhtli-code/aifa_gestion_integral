@@ -778,6 +778,19 @@ body.admin-shell .table td {
     padding: 0.85rem 1rem;
   }
 
+  .topbar__nav {
+    width: auto;
+    flex: 1;
+  }
+
+  .nav-dropdown {
+    box-shadow: 0 12px 28px rgba(29, 78, 216, 0.16);
+  }
+
+  .nav-dropdown__trigger {
+    padding: 0.85rem 1rem;
+  }
+
   .topbar__logo {
     width: 84px;
   }
