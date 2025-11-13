@@ -1,63 +1,43 @@
-import { supabaseDb } from "./supabaseClient.js";
+import { supabaseDb } from "../supabaseClient.js";
 
-const state = {
-  roles: [],
-  permissions: [],
-  assignedPermissions: new Set(),
-  selectedRoleId: "",
-  filters: {
-    query: ""
-  },
-  isDirty: false
-};
-
-const selectors = {
-  logoutButton: document.querySelector("#btn-logout"),
-  saveButton: document.querySelector("#btn-save-role-permissions"),
-  roleSelect: document.querySelector("#select-role"),
-  searchInput: document.querySelector("#search-permission-role"),
-  tableBody: document.querySelector("#role-permissions-table-body"),
-  summary: document.querySelector("#role-permissions-summary"),
-  confirmDialog: document.querySelector("#confirm-dialog"),
-  confirmForm: document.querySelector("#confirm-form"),
-  confirmCancel: document.querySelector("#confirm-cancel"),
-  confirmMessage: document.querySelector("#confirm-message")
-};
-
-async function ensureAuthenticated() {
-  const {
-    data: { session }
-  } = await supabaseDb.auth.getSession();
-
-  if (!session) {
-    window.location.replace("index.html");
-    return null;
-  }
-
-  const { data, error } = await supabaseDb
-    .from("usuarios_roles")
-    .select("roles:rol_id(nombre)")
-    .eq("usuario_id", session.user.id);
-
-  if (error) {
-    console.error("Error al verificar permisos", error);
-    window.location.replace("index.html");
-    return null;
-  }
-
-  const isAdmin = (data ?? []).some((row) => (row.roles?.nombre ?? "").toLowerCase() === "administrador");
-  if (!isAdmin) {
-    await supabaseDb.auth.signOut();
-    window.location.replace("index.html");
-    return null;
-  }
-
-  return session.user;
+function createInitialState() {
+  return {
+    roles: [],
+    permissions: [],
+    assignedPermissions: new Set(),
+    selectedRoleId: "",
+    filters: {
+      query: ""
+    },
+    isDirty: false
+  };
 }
 
-async function initialize() {
-  const user = await ensureAuthenticated();
-  if (!user) return;
+let state = createInitialState();
+
+let selectors = {};
+
+function resolveSelectors() {
+  selectors = {
+    saveButton: document.querySelector("#btn-save-role-permissions"),
+    roleSelect: document.querySelector("#select-role"),
+    searchInput: document.querySelector("#search-permission-role"),
+    tableBody: document.querySelector("#role-permissions-table-body"),
+    summary: document.querySelector("#role-permissions-summary"),
+    confirmDialog: document.querySelector("#confirm-dialog"),
+    confirmForm: document.querySelector("#confirm-form"),
+    confirmCancel: document.querySelector("#confirm-cancel"),
+    confirmMessage: document.querySelector("#confirm-message")
+  };
+}
+
+export async function initializeRolesPermisosModule() {
+  state = createInitialState();
+  resolveSelectors();
+
+  if (!selectors.roleSelect) {
+    return;
+  }
 
   await Promise.all([loadRoles(), loadPermissions()]);
   registerEventListeners();
@@ -212,11 +192,6 @@ function updateSummary(totalVisible) {
 }
 
 function registerEventListeners() {
-  selectors.logoutButton?.addEventListener("click", async () => {
-    await supabaseDb.auth.signOut();
-    window.location.replace("index.html");
-  });
-
   selectors.roleSelect?.addEventListener("change", async (event) => {
     const target = event.target;
     if (!(target instanceof HTMLSelectElement)) return;
@@ -341,5 +316,3 @@ function escapeHtml(value) {
     return map[match] ?? match;
   });
 }
-
-initialize();

@@ -25,22 +25,27 @@
         </summary>
         <ul class="nav-dropdown__list">
           <li>
-            <a class="nav-menu__link nav-menu__link--active" href="admin.html" aria-current="page">
+            <a class="nav-menu__link nav-menu__link--active" href="#usuarios" data-module-target="usuarios" aria-current="page">
               <span class="nav-menu__label">Usuarios</span>
             </a>
           </li>
           <li>
-            <a class="nav-menu__link" href="admin_roles.html">
+            <a class="nav-menu__link" href="#cursos" data-module-target="cursos">
+              <span class="nav-menu__label">Cursos</span>
+            </a>
+          </li>
+          <li>
+            <a class="nav-menu__link" href="#roles" data-module-target="roles">
               <span class="nav-menu__label">Roles</span>
             </a>
           </li>
           <li>
-            <a class="nav-menu__link" href="admin_permisos.html">
+            <a class="nav-menu__link" href="#permisos" data-module-target="permisos">
               <span class="nav-menu__label">Permisos</span>
             </a>
           </li>
           <li>
-            <a class="nav-menu__link" href="admin_roles_permisos.html">
+            <a class="nav-menu__link" href="#asignaciones" data-module-target="asignaciones">
               <span class="nav-menu__label">Asignar permisos</span>
             </a>
           </li>
@@ -53,97 +58,398 @@
     <div class="admin-main__top">
       <button id="btn-logout" class="btn btn--outline" type="button">Cerrar sesión</button>
     </div>
-    <section class="panel panel--elevated">
-      <header class="panel__header">
-        <div class="panel__heading">
-          <h1 class="panel__title">Administración de usuarios</h1>
-          <p class="panel__subtitle">Gestione los usuarios del sistema, sus roles y permisos.</p>
-        </div>
-        <div class="panel__actions">
-          <button id="btn-new-user" class="btn btn--primary" type="button">Nuevo usuario</button>
-        </div>
-      </header>
-      <div class="panel__toolbar">
-        <div class="input-group">
-          <label class="sr-only" for="search-user">Buscar usuario</label>
-          <input id="search-user" type="search" placeholder="Buscar por nombre, correo, rol o puesto" />
-        </div>
-        <div class="input-group">
-          <label for="filter-status">Estado</label>
-          <select id="filter-status">
-            <option value="todos">Todos</option>
-            <option value="activos">Activos</option>
-            <option value="inactivos">Inactivos</option>
-          </select>
-        </div>
-      </div>
-      <div class="table-wrapper" role="region" aria-live="polite">
-        <table class="table" aria-describedby="panel-summary">
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              <th>Correo</th>
-              <th>Área</th>
-              <th>Jerarquía</th>
-              <th>Estado</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody id="users-table-body">
-            <tr>
-              <td colspan="6" class="table__empty">Cargando usuarios…</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <p id="panel-summary" class="panel__summary"></p>
-    </section>
+    <div id="module-container" class="admin-module-container">
+      <section class="panel panel--elevated admin-module__loading">
+        <header class="panel__header">
+          <div class="panel__heading">
+            <h1 class="panel__title">Cargando módulo…</h1>
+            <p class="panel__subtitle">Por favor espere mientras se prepara la información.</p>
+          </div>
+        </header>
+      </section>
+    </div>
   </main>
 
-  <dialog id="user-dialog" class="dialog">
-    <form method="dialog" class="dialog__content" id="user-form">
-      <header class="dialog__header">
-        <h2 id="dialog-title">Nuevo usuario</h2>
-        <button type="button" class="btn btn--ghost" id="dialog-close" aria-label="Cerrar">×</button>
-      </header>
-      <section class="dialog__body">
-        <div class="form form--grid">
-          <div class="form__field">
-            <label for="user-name">Nombre</label>
-            <input id="user-name" name="nombre" required />
+  <template id="module-template-usuarios">
+    <div class="admin-module admin-module--usuarios">
+      <section class="panel panel--elevated">
+        <header class="panel__header">
+          <div class="panel__heading">
+            <h1 class="panel__title">Administración de usuarios</h1>
+            <p class="panel__subtitle">Gestione los usuarios del sistema, sus roles y permisos.</p>
           </div>
-          <div class="form__field">
-            <label for="user-lastname">Apellido</label>
-            <input id="user-lastname" name="apellido" required />
+          <div class="panel__actions">
+            <button id="btn-new-user" class="btn btn--primary" type="button">Nuevo usuario</button>
           </div>
-          <div class="form__field">
-            <label for="user-email">Correo institucional</label>
-            <input id="user-email" name="correo" type="email" required />
+        </header>
+        <div class="panel__toolbar">
+          <div class="input-group">
+            <label class="sr-only" for="search-user">Buscar usuario</label>
+            <input id="search-user" type="search" placeholder="Buscar por nombre, correo, rol o puesto" />
           </div>
-          <div class="form__field">
-            <label for="user-area">Área</label>
-            <select id="user-area" name="area_id" required></select>
-          </div>
-          <div class="form__field">
-            <label for="user-rank">Jerarquía</label>
-            <select id="user-rank" name="jerarquia_id" required></select>
-          </div>
-          <div class="form__field form__field--inline">
-            <input type="checkbox" id="user-active" name="activo" checked />
-            <label for="user-active">Usuario activo</label>
-          </div>
-          <div class="form__field">
-            <label for="user-role">Rol</label>
-            <select id="user-role" name="rol_id"></select>
+          <div class="input-group">
+            <label for="filter-status">Estado</label>
+            <select id="filter-status">
+              <option value="todos">Todos</option>
+              <option value="activos">Activos</option>
+              <option value="inactivos">Inactivos</option>
+            </select>
           </div>
         </div>
-        <p class="form__hint" id="dialog-hint" role="status" aria-live="polite"></p>
+        <div class="table-wrapper" role="region" aria-live="polite">
+          <table class="table" aria-describedby="panel-summary">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Correo</th>
+                <th>Área</th>
+                <th>Jerarquía</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="users-table-body">
+              <tr>
+                <td colspan="6" class="table__empty">Cargando usuarios…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p id="panel-summary" class="panel__summary"></p>
       </section>
-      <footer class="dialog__footer">
-        <button type="button" class="btn btn--ghost" id="dialog-cancel">Cancelar</button>
-        <button type="submit" class="btn btn--primary">Guardar</button>
-      </footer>
-    </form>
-  </dialog>
+
+      <dialog id="user-dialog" class="dialog">
+        <form method="dialog" class="dialog__content" id="user-form">
+          <header class="dialog__header">
+            <h2 id="dialog-title">Nuevo usuario</h2>
+            <button type="button" class="btn btn--ghost" id="dialog-close" aria-label="Cerrar">×</button>
+          </header>
+          <section class="dialog__body">
+            <div class="form form--grid">
+              <div class="form__field">
+                <label for="user-name">Nombre</label>
+                <input id="user-name" name="nombre" required />
+              </div>
+              <div class="form__field">
+                <label for="user-lastname">Apellido</label>
+                <input id="user-lastname" name="apellido" required />
+              </div>
+              <div class="form__field">
+                <label for="user-email">Correo institucional</label>
+                <input id="user-email" name="correo" type="email" required />
+              </div>
+              <div class="form__field">
+                <label for="user-area">Área</label>
+                <select id="user-area" name="area_id" required></select>
+              </div>
+              <div class="form__field">
+                <label for="user-rank">Jerarquía</label>
+                <select id="user-rank" name="jerarquia_id" required></select>
+              </div>
+              <div class="form__field form__field--inline">
+                <input type="checkbox" id="user-active" name="activo" checked />
+                <label for="user-active">Usuario activo</label>
+              </div>
+              <div class="form__field">
+                <label for="user-role">Rol</label>
+                <select id="user-role" name="rol_id"></select>
+              </div>
+            </div>
+            <p class="form__hint" id="dialog-hint" role="status" aria-live="polite"></p>
+          </section>
+          <footer class="dialog__footer">
+            <button type="button" class="btn btn--ghost" id="dialog-cancel">Cancelar</button>
+            <button type="submit" class="btn btn--primary">Guardar</button>
+          </footer>
+        </form>
+      </dialog>
+    </div>
+  </template>
+
+  <template id="module-template-cursos">
+    <div class="admin-module admin-module--cursos">
+      <section class="panel panel--elevated">
+        <header class="panel__header">
+          <div class="panel__heading">
+            <h1 class="panel__title">Gestión de cursos</h1>
+            <p class="panel__subtitle">Cree y administre los cursos disponibles en la plataforma.</p>
+          </div>
+          <div class="panel__actions">
+            <button id="btn-new-course" class="btn btn--primary" type="button">Nuevo curso</button>
+          </div>
+        </header>
+        <div class="panel__toolbar">
+          <div class="input-group">
+            <label class="sr-only" for="search-course">Buscar curso</label>
+            <input id="search-course" type="search" placeholder="Buscar por nombre o descripción" />
+          </div>
+          <div class="input-group">
+            <label for="filter-course-status">Estado</label>
+            <select id="filter-course-status">
+              <option value="todos">Todos</option>
+              <option value="activos">Activos</option>
+              <option value="inactivos">Inactivos</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrapper" role="region" aria-live="polite">
+          <table class="table" aria-describedby="courses-summary">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Estado</th>
+                <th>Creado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="courses-table-body">
+              <tr>
+                <td colspan="4" class="table__empty">Cargando cursos…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p id="courses-summary" class="panel__summary"></p>
+      </section>
+
+      <dialog id="course-dialog" class="dialog">
+        <form method="dialog" class="dialog__content" id="course-form">
+          <header class="dialog__header">
+            <h2 id="course-dialog-title">Nuevo curso</h2>
+            <button type="button" class="btn btn--ghost" id="course-dialog-close" aria-label="Cerrar">×</button>
+          </header>
+          <section class="dialog__body">
+            <div class="form form--grid">
+              <div class="form__field">
+                <label for="course-name">Nombre del curso</label>
+                <input id="course-name" name="nombre" required />
+              </div>
+              <div class="form__field">
+                <label for="course-description">Descripción</label>
+                <textarea id="course-description" name="descripcion" rows="4"></textarea>
+              </div>
+              <div class="form__field">
+                <label for="course-cover">Imagen de portada (URL)</label>
+                <input id="course-cover" name="imagen_portada" type="url" placeholder="https://" />
+              </div>
+              <div class="form__field form__field--inline">
+                <input type="checkbox" id="course-active" name="activo" checked />
+                <label for="course-active">Curso activo</label>
+              </div>
+            </div>
+            <p class="form__hint" id="course-dialog-hint" role="status" aria-live="polite"></p>
+          </section>
+          <footer class="dialog__footer">
+            <button type="button" class="btn btn--ghost" id="course-dialog-cancel">Cancelar</button>
+            <button type="submit" class="btn btn--primary">Guardar</button>
+          </footer>
+        </form>
+      </dialog>
+    </div>
+  </template>
+
+  <template id="module-template-roles">
+    <div class="admin-module admin-module--roles">
+      <section class="panel panel--elevated">
+        <header class="panel__header">
+          <div class="panel__heading">
+            <h1 class="panel__title">Gestión de roles</h1>
+            <p class="panel__subtitle">Cree y administre los roles disponibles en la plataforma.</p>
+          </div>
+          <div class="panel__actions">
+            <button id="btn-new-role" class="btn btn--primary" type="button">Nuevo rol</button>
+          </div>
+        </header>
+        <div class="panel__toolbar">
+          <div class="input-group">
+            <label class="sr-only" for="search-role">Buscar rol</label>
+            <input id="search-role" type="search" placeholder="Buscar por nombre o descripción" />
+          </div>
+          <div class="input-group">
+            <label for="filter-role-status">Estado</label>
+            <select id="filter-role-status">
+              <option value="todos">Todos</option>
+              <option value="activos">Activos</option>
+              <option value="inactivos">Inactivos</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrapper" role="region" aria-live="polite">
+          <table class="table" aria-describedby="roles-summary">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Descripción</th>
+                <th>Estado</th>
+                <th>Creado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="roles-table-body">
+              <tr>
+                <td colspan="5" class="table__empty">Cargando roles…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p id="roles-summary" class="panel__summary"></p>
+      </section>
+
+      <dialog id="role-dialog" class="dialog">
+        <form method="dialog" class="dialog__content" id="role-form">
+          <header class="dialog__header">
+            <h2 id="role-dialog-title">Nuevo rol</h2>
+            <button type="button" class="btn btn--ghost" id="role-dialog-close" aria-label="Cerrar">×</button>
+          </header>
+          <section class="dialog__body">
+            <div class="form form--grid">
+              <div class="form__field">
+                <label for="role-name">Nombre</label>
+                <input id="role-name" name="nombre" required />
+              </div>
+              <div class="form__field">
+                <label for="role-description">Descripción</label>
+                <textarea id="role-description" name="descripcion" rows="3"></textarea>
+              </div>
+              <div class="form__field form__field--inline">
+                <input type="checkbox" id="role-active" name="activo" checked />
+                <label for="role-active">Rol activo</label>
+              </div>
+            </div>
+            <p class="form__hint" id="role-dialog-hint" role="status" aria-live="polite"></p>
+          </section>
+          <footer class="dialog__footer">
+            <button type="button" class="btn btn--ghost" id="role-dialog-cancel">Cancelar</button>
+            <button type="submit" class="btn btn--primary">Guardar</button>
+          </footer>
+        </form>
+      </dialog>
+    </div>
+  </template>
+
+  <template id="module-template-permisos">
+    <div class="admin-module admin-module--permisos">
+      <section class="panel panel--elevated">
+        <header class="panel__header">
+          <div class="panel__heading">
+            <h1 class="panel__title">Gestión de permisos</h1>
+            <p class="panel__subtitle">Defina y administre los permisos del sistema.</p>
+          </div>
+          <div class="panel__actions">
+            <button id="btn-new-permission" class="btn btn--primary" type="button">Nuevo permiso</button>
+          </div>
+        </header>
+        <div class="panel__toolbar">
+          <div class="input-group">
+            <label class="sr-only" for="search-permission">Buscar permiso</label>
+            <input id="search-permission" type="search" placeholder="Buscar por código o descripción" />
+          </div>
+        </div>
+        <div class="table-wrapper" role="region" aria-live="polite">
+          <table class="table" aria-describedby="permissions-summary">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Descripción</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="permissions-table-body">
+              <tr>
+                <td colspan="3" class="table__empty">Cargando permisos…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p id="permissions-summary" class="panel__summary"></p>
+      </section>
+
+      <dialog id="permission-dialog" class="dialog">
+        <form method="dialog" class="dialog__content" id="permission-form">
+          <header class="dialog__header">
+            <h2 id="permission-dialog-title">Nuevo permiso</h2>
+            <button type="button" class="btn btn--ghost" id="permission-dialog-close" aria-label="Cerrar">×</button>
+          </header>
+          <section class="dialog__body">
+            <div class="form form--grid">
+              <div class="form__field">
+                <label for="permission-code">Código</label>
+                <input id="permission-code" name="codigo" required />
+              </div>
+              <div class="form__field">
+                <label for="permission-description">Descripción</label>
+                <textarea id="permission-description" name="descripcion" rows="3" required></textarea>
+              </div>
+            </div>
+            <p class="form__hint" id="permission-dialog-hint" role="status" aria-live="polite"></p>
+          </section>
+          <footer class="dialog__footer">
+            <button type="button" class="btn btn--ghost" id="permission-dialog-cancel">Cancelar</button>
+            <button type="submit" class="btn btn--primary">Guardar</button>
+          </footer>
+        </form>
+      </dialog>
+    </div>
+  </template>
+
+  <template id="module-template-asignaciones">
+    <div class="admin-module admin-module--asignaciones">
+      <section class="panel panel--elevated">
+        <header class="panel__header">
+          <div class="panel__heading">
+            <h1 class="panel__title">Asignar permisos a roles</h1>
+            <p class="panel__subtitle">Seleccione un rol y gestione los permisos disponibles.</p>
+          </div>
+          <div class="panel__actions">
+            <button id="btn-save-role-permissions" class="btn btn--primary" type="button">Guardar cambios</button>
+          </div>
+        </header>
+        <div class="panel__toolbar">
+          <div class="input-group">
+            <label for="select-role">Rol</label>
+            <select id="select-role">
+              <option value="" disabled selected>Seleccione un rol</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label class="sr-only" for="search-permission-role">Buscar permiso</label>
+            <input id="search-permission-role" type="search" placeholder="Buscar permiso por código o descripción" />
+          </div>
+        </div>
+        <div class="table-wrapper" role="region" aria-live="polite">
+          <table class="table" aria-describedby="role-permissions-summary">
+            <thead>
+              <tr>
+                <th>Permiso</th>
+                <th>Descripción</th>
+                <th>Asignado</th>
+              </tr>
+            </thead>
+            <tbody id="role-permissions-table-body">
+              <tr>
+                <td colspan="3" class="table__empty">Seleccione un rol para ver los permisos.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p id="role-permissions-summary" class="panel__summary"></p>
+      </section>
+
+      <dialog id="confirm-dialog" class="dialog">
+        <form method="dialog" class="dialog__content" id="confirm-form">
+          <header class="dialog__header">
+            <h2>Confirmar cambios</h2>
+          </header>
+          <section class="dialog__body">
+            <p id="confirm-message">¿Desea guardar los cambios de permisos?</p>
+          </section>
+          <footer class="dialog__footer">
+            <button type="button" class="btn btn--ghost" id="confirm-cancel">Cancelar</button>
+            <button type="submit" class="btn btn--primary">Confirmar</button>
+          </footer>
+        </form>
+      </dialog>
+    </div>
+  </template>
 </body>
 </html>

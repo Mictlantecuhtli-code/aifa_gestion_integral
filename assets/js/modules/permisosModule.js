@@ -1,63 +1,43 @@
-import { supabaseDb } from "./supabaseClient.js";
+import { supabaseDb } from "../supabaseClient.js";
 
-const state = {
-  permissions: [],
-  filters: {
-    query: ""
-  },
-  editingPermission: null
-};
-
-const selectors = {
-  logoutButton: document.querySelector("#btn-logout"),
-  newPermissionButton: document.querySelector("#btn-new-permission"),
-  permissionDialog: document.querySelector("#permission-dialog"),
-  permissionDialogTitle: document.querySelector("#permission-dialog-title"),
-  permissionDialogClose: document.querySelector("#permission-dialog-close"),
-  permissionDialogCancel: document.querySelector("#permission-dialog-cancel"),
-  permissionDialogHint: document.querySelector("#permission-dialog-hint"),
-  permissionForm: document.querySelector("#permission-form"),
-  permissionsTableBody: document.querySelector("#permissions-table-body"),
-  permissionsSummary: document.querySelector("#permissions-summary"),
-  searchInput: document.querySelector("#search-permission"),
-  permissionCodeInput: document.querySelector("#permission-code"),
-  permissionDescriptionInput: document.querySelector("#permission-description")
-};
-
-async function ensureAuthenticated() {
-  const {
-    data: { session }
-  } = await supabaseDb.auth.getSession();
-
-  if (!session) {
-    window.location.replace("index.html");
-    return null;
-  }
-
-  const { data, error } = await supabaseDb
-    .from("usuarios_roles")
-    .select("roles:rol_id(nombre)")
-    .eq("usuario_id", session.user.id);
-
-  if (error) {
-    console.error("Error al verificar permisos", error);
-    window.location.replace("index.html");
-    return null;
-  }
-
-  const isAdmin = (data ?? []).some((row) => (row.roles?.nombre ?? "").toLowerCase() === "administrador");
-  if (!isAdmin) {
-    await supabaseDb.auth.signOut();
-    window.location.replace("index.html");
-    return null;
-  }
-
-  return session.user;
+function createInitialState() {
+  return {
+    permissions: [],
+    filters: {
+      query: ""
+    },
+    editingPermission: null
+  };
 }
 
-async function initialize() {
-  const user = await ensureAuthenticated();
-  if (!user) return;
+let state = createInitialState();
+
+let selectors = {};
+
+function resolveSelectors() {
+  selectors = {
+    newPermissionButton: document.querySelector("#btn-new-permission"),
+    permissionDialog: document.querySelector("#permission-dialog"),
+    permissionDialogTitle: document.querySelector("#permission-dialog-title"),
+    permissionDialogClose: document.querySelector("#permission-dialog-close"),
+    permissionDialogCancel: document.querySelector("#permission-dialog-cancel"),
+    permissionDialogHint: document.querySelector("#permission-dialog-hint"),
+    permissionForm: document.querySelector("#permission-form"),
+    permissionsTableBody: document.querySelector("#permissions-table-body"),
+    permissionsSummary: document.querySelector("#permissions-summary"),
+    searchInput: document.querySelector("#search-permission"),
+    permissionCodeInput: document.querySelector("#permission-code"),
+    permissionDescriptionInput: document.querySelector("#permission-description")
+  };
+}
+
+export async function initializePermisosModule() {
+  state = createInitialState();
+  resolveSelectors();
+
+  if (!selectors.permissionForm) {
+    return;
+  }
 
   await loadPermissions();
   registerEventListeners();
@@ -130,11 +110,6 @@ function applyFilters(permissions) {
 }
 
 function registerEventListeners() {
-  selectors.logoutButton?.addEventListener("click", async () => {
-    await supabaseDb.auth.signOut();
-    window.location.replace("index.html");
-  });
-
   selectors.newPermissionButton?.addEventListener("click", () => {
     state.editingPermission = null;
     openDialog("Nuevo permiso");
@@ -338,5 +313,3 @@ async function deletePermission(permission) {
     console.error("Error inesperado al eliminar permiso", error);
   }
 }
-
-initialize();

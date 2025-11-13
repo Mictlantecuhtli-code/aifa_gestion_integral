@@ -1,69 +1,49 @@
-import { supabaseDb } from "./supabaseClient.js";
+import { supabaseDb } from "../supabaseClient.js";
 
-const state = {
-  roles: [],
-  filters: {
-    query: "",
-    status: "todos"
-  },
-  editingRole: null,
-  currentUser: null
-};
-
-const selectors = {
-  logoutButton: document.querySelector("#btn-logout"),
-  newRoleButton: document.querySelector("#btn-new-role"),
-  roleDialog: document.querySelector("#role-dialog"),
-  roleDialogTitle: document.querySelector("#role-dialog-title"),
-  roleDialogClose: document.querySelector("#role-dialog-close"),
-  roleDialogCancel: document.querySelector("#role-dialog-cancel"),
-  roleDialogHint: document.querySelector("#role-dialog-hint"),
-  roleForm: document.querySelector("#role-form"),
-  rolesTableBody: document.querySelector("#roles-table-body"),
-  rolesSummary: document.querySelector("#roles-summary"),
-  searchInput: document.querySelector("#search-role"),
-  statusSelect: document.querySelector("#filter-role-status"),
-  roleNameInput: document.querySelector("#role-name"),
-  roleDescriptionInput: document.querySelector("#role-description"),
-  roleActiveCheckbox: document.querySelector("#role-active")
-};
-
-async function ensureAuthenticated() {
-  const {
-    data: { session }
-  } = await supabaseDb.auth.getSession();
-
-  if (!session) {
-    window.location.replace("index.html");
-    return null;
-  }
-
-  const { data, error } = await supabaseDb
-    .from("usuarios_roles")
-    .select("roles:rol_id(nombre)")
-    .eq("usuario_id", session.user.id);
-
-  if (error) {
-    console.error("Error al verificar permisos", error);
-    window.location.replace("index.html");
-    return null;
-  }
-
-  const isAdmin = (data ?? []).some((row) => (row.roles?.nombre ?? "").toLowerCase() === "administrador");
-  if (!isAdmin) {
-    await supabaseDb.auth.signOut();
-    window.location.replace("index.html");
-    return null;
-  }
-
-  return session.user;
+function createInitialState() {
+  return {
+    roles: [],
+    filters: {
+      query: "",
+      status: "todos"
+    },
+    editingRole: null,
+    currentUser: null
+  };
 }
 
-async function initialize() {
-  const user = await ensureAuthenticated();
-  if (!user) return;
+let state = createInitialState();
 
-  state.currentUser = user;
+let selectors = {};
+
+function resolveSelectors() {
+  selectors = {
+    newRoleButton: document.querySelector("#btn-new-role"),
+    roleDialog: document.querySelector("#role-dialog"),
+    roleDialogTitle: document.querySelector("#role-dialog-title"),
+    roleDialogClose: document.querySelector("#role-dialog-close"),
+    roleDialogCancel: document.querySelector("#role-dialog-cancel"),
+    roleDialogHint: document.querySelector("#role-dialog-hint"),
+    roleForm: document.querySelector("#role-form"),
+    rolesTableBody: document.querySelector("#roles-table-body"),
+    rolesSummary: document.querySelector("#roles-summary"),
+    searchInput: document.querySelector("#search-role"),
+    statusSelect: document.querySelector("#filter-role-status"),
+    roleNameInput: document.querySelector("#role-name"),
+    roleDescriptionInput: document.querySelector("#role-description"),
+    roleActiveCheckbox: document.querySelector("#role-active")
+  };
+}
+
+export async function initializeRolesModule(currentUser) {
+  state = createInitialState();
+  state.currentUser = currentUser ?? null;
+  resolveSelectors();
+
+  if (!selectors.roleForm) {
+    return;
+  }
+
   await loadRoles();
   registerEventListeners();
 }
@@ -149,11 +129,6 @@ function applyFilters(roles) {
 }
 
 function registerEventListeners() {
-  selectors.logoutButton?.addEventListener("click", async () => {
-    await supabaseDb.auth.signOut();
-    window.location.replace("index.html");
-  });
-
   selectors.newRoleButton?.addEventListener("click", () => {
     state.editingRole = null;
     openDialog("Nuevo rol");
@@ -386,5 +361,3 @@ async function deleteRole(role) {
     console.error("Error inesperado al eliminar rol", error);
   }
 }
-
-initialize();
