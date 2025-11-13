@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistema de Capacitación - Cursos</title>
+  <link rel="stylesheet" href="assets/css/main.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script type="module" src="assets/js/admin_cursos.js" defer></script>
+</head>
+<body class="theme-light admin-shell">
+  <header class="topbar">
+    <div class="topbar__brand">
+      <img src="assets/AIFA_logo.png" alt="Logotipo AIFA" class="topbar__logo" />
+      <div class="topbar__titles">
+        <span class="brand">Sistema de Capacitación</span>
+        <span class="topbar__subtitle">Administración de cursos</span>
+      </div>
+    </div>
+    <nav class="topbar__nav" aria-label="Menú de administración">
+      <details class="nav-dropdown" open>
+        <summary class="nav-dropdown__trigger">
+          <span class="nav-dropdown__label">Administración</span>
+          <span class="nav-dropdown__icon" aria-hidden="true"></span>
+        </summary>
+        <ul class="nav-dropdown__list">
+          <li>
+            <a class="nav-menu__link" href="admin.html">
+              <span class="nav-menu__label">Usuarios</span>
+            </a>
+          </li>
+          <li>
+            <a class="nav-menu__link nav-menu__link--active" href="admin_cursos.html" aria-current="page">
+              <span class="nav-menu__label">Cursos</span>
+            </a>
+          </li>
+          <li>
+            <a class="nav-menu__link" href="admin_roles.html">
+              <span class="nav-menu__label">Roles</span>
+            </a>
+          </li>
+          <li>
+            <a class="nav-menu__link" href="admin_permisos.html">
+              <span class="nav-menu__label">Permisos</span>
+            </a>
+          </li>
+          <li>
+            <a class="nav-menu__link" href="admin_roles_permisos.html">
+              <span class="nav-menu__label">Asignar permisos</span>
+            </a>
+          </li>
+        </ul>
+      </details>
+    </nav>
+  </header>
+
+  <main class="admin-main">
+    <div class="admin-main__top">
+      <button id="btn-logout" class="btn btn--outline" type="button">Cerrar sesión</button>
+    </div>
+    <section class="panel panel--elevated">
+      <header class="panel__header">
+        <div class="panel__heading">
+          <h1 class="panel__title">Gestión de cursos</h1>
+          <p class="panel__subtitle">Cree y administre los cursos disponibles en la plataforma.</p>
+        </div>
+        <div class="panel__actions">
+          <button id="btn-new-course" class="btn btn--primary" type="button">Nuevo curso</button>
+        </div>
+      </header>
+      <div class="panel__toolbar">
+        <div class="input-group">
+          <label class="sr-only" for="search-course">Buscar curso</label>
+          <input id="search-course" type="search" placeholder="Buscar por nombre o descripción" />
+        </div>
+        <div class="input-group">
+          <label for="filter-course-status">Estado</label>
+          <select id="filter-course-status">
+            <option value="todos">Todos</option>
+            <option value="activos">Activos</option>
+            <option value="inactivos">Inactivos</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrapper" role="region" aria-live="polite">
+        <table class="table" aria-describedby="courses-summary">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Estado</th>
+              <th>Creado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="courses-table-body">
+            <tr>
+              <td colspan="4" class="table__empty">Cargando cursos…</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p id="courses-summary" class="panel__summary"></p>
+    </section>
+  </main>
+
+  <dialog id="course-dialog" class="dialog">
+    <form method="dialog" class="dialog__content" id="course-form">
+      <header class="dialog__header">
+        <h2 id="course-dialog-title">Nuevo curso</h2>
+        <button type="button" class="btn btn--ghost" id="course-dialog-close" aria-label="Cerrar">×</button>
+      </header>
+      <section class="dialog__body">
+        <div class="form form--grid">
+          <div class="form__field">
+            <label for="course-name">Nombre del curso</label>
+            <input id="course-name" name="nombre" required />
+          </div>
+          <div class="form__field">
+            <label for="course-description">Descripción</label>
+            <textarea id="course-description" name="descripcion" rows="4"></textarea>
+          </div>
+          <div class="form__field">
+            <label for="course-cover">Imagen de portada (URL)</label>
+            <input id="course-cover" name="imagen_portada" type="url" placeholder="https://" />
+          </div>
+          <div class="form__field form__field--inline">
+            <input type="checkbox" id="course-active" name="activo" checked />
+            <label for="course-active">Curso activo</label>
+          </div>
+        </div>
+        <p class="form__hint" id="course-dialog-hint" role="status" aria-live="polite"></p>
+      </section>
+      <footer class="dialog__footer">
+        <button type="button" class="btn btn--ghost" id="course-dialog-cancel">Cancelar</button>
+        <button type="submit" class="btn btn--primary">Guardar</button>
+      </footer>
+    </form>
+  </dialog>
+</body>
+</html>
