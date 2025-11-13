@@ -7,7 +7,7 @@ import { initializeRolesPermisosModule } from "./modules/rolesPermisosModule.js"
 
 const selectors = {
   logoutButton: document.querySelector("#btn-logout"),
-  navigationLinks: Array.from(document.querySelectorAll("[data-module-target]")),
+  navigationLinks: Array.from(document.querySelectorAll(".admin-menu__button")),
   moduleContainer: document.querySelector("#module-container"),
   topbarSubtitle: document.querySelector(".topbar__subtitle")
 };
@@ -94,10 +94,9 @@ function registerGlobalEventListeners() {
     redirectToLogin();
   });
 
-  selectors.navigationLinks.forEach((link) => {
-    link.addEventListener("click", async (event) => {
-      event.preventDefault();
-      const moduleKey = link.dataset.moduleTarget;
+  selectors.navigationLinks.forEach((control) => {
+    control.addEventListener("click", async () => {
+      const moduleKey = control.dataset.moduleTarget;
       if (!moduleKey || moduleKey === currentModuleKey) return;
       await loadModule(moduleKey);
     });
@@ -133,14 +132,10 @@ async function loadModule(moduleKey) {
 }
 
 function setActiveNavigation(moduleKey) {
-  selectors.navigationLinks.forEach((link) => {
-    const isActive = link.dataset.moduleTarget === moduleKey;
-    link.classList.toggle("nav-menu__link--active", isActive);
-    if (isActive) {
-      link.setAttribute("aria-current", "page");
-    } else {
-      link.removeAttribute("aria-current");
-    }
+  selectors.navigationLinks.forEach((control) => {
+    const isActive = control.dataset.moduleTarget === moduleKey;
+    control.classList.toggle("admin-menu__button--active", isActive);
+    control.setAttribute("aria-pressed", String(isActive));
   });
 }
 
