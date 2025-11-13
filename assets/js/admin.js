@@ -1,35 +1,57 @@
 import { supabaseDb } from "./supabaseClient.js";
-
-const state = {
-  users: [],
-  areas: [],
-  jerarquias: [],
-  roles: [],
-  filters: {
-    query: "",
-    status: "todos"
-  },
-  editingUser: null
-};
+import { initializeUsersModule } from "./modules/usersModule.js";
+import { initializeCursosModule } from "./modules/cursosModule.js";
+import { initializeRolesModule } from "./modules/rolesModule.js";
+import { initializePermisosModule } from "./modules/permisosModule.js";
+import { initializeRolesPermisosModule } from "./modules/rolesPermisosModule.js";
 
 const selectors = {
   logoutButton: document.querySelector("#btn-logout"),
-  newUserButton: document.querySelector("#btn-new-user"),
-  userDialog: document.querySelector("#user-dialog"),
-  dialogTitle: document.querySelector("#dialog-title"),
-  dialogClose: document.querySelector("#dialog-close"),
-  dialogCancel: document.querySelector("#dialog-cancel"),
-  dialogHint: document.querySelector("#dialog-hint"),
-  userForm: document.querySelector("#user-form"),
-  usersTableBody: document.querySelector("#users-table-body"),
-  panelSummary: document.querySelector("#panel-summary"),
-  searchInput: document.querySelector("#search-user"),
-  statusSelect: document.querySelector("#filter-status"),
-  areaSelect: document.querySelector("#user-area"),
-  jerarquiaSelect: document.querySelector("#user-rank"),
-  roleSelect: document.querySelector("#user-role"),
-  activeCheckbox: document.querySelector("#user-active")
+  navigationLinks: Array.from(document.querySelectorAll("[data-module-target]")),
+  moduleContainer: document.querySelector("#module-container"),
+  topbarSubtitle: document.querySelector(".topbar__subtitle")
 };
+
+const moduleDefinitions = {
+  usuarios: {
+    templateId: "module-template-usuarios",
+    subtitle: "Administración de usuarios",
+    initialize: () => initializeUsersModule()
+  },
+  cursos: {
+    templateId: "module-template-cursos",
+    subtitle: "Administración de cursos",
+    initialize: (user) => initializeCursosModule(user)
+  },
+  roles: {
+    templateId: "module-template-roles",
+    subtitle: "Administración de roles",
+    initialize: (user) => initializeRolesModule(user)
+  },
+  permisos: {
+    templateId: "module-template-permisos",
+    subtitle: "Administración de permisos",
+    initialize: () => initializePermisosModule()
+  },
+  asignaciones: {
+    templateId: "module-template-asignaciones",
+    subtitle: "Asignación de permisos",
+    initialize: () => initializeRolesPermisosModule()
+  }
+};
+
+let currentModuleKey = null;
+let currentUser = null;
+async function initApp() {
+  currentUser = await ensureAuthenticated();
+  if (!currentUser) {
+    return;
+  }
+
+  registerGlobalEventListeners();
+  const defaultModule = selectors.navigationLinks.find((link) => link.dataset.moduleTarget)?.dataset.moduleTarget ?? "usuarios";
+  await loadModule(defaultModule);
+}
 
 async function ensureAuthenticated() {
   const {
@@ -37,7 +59,7 @@ async function ensureAuthenticated() {
   } = await supabaseDb.auth.getSession();
 
   if (!session) {
-    window.location.replace("index.html");
+    redirectToLogin();
     return null;
   }
 
@@ -48,422 +70,104 @@ async function ensureAuthenticated() {
 
   if (error) {
     console.error("Error al verificar permisos", error);
-    window.location.replace("index.html");
+    redirectToLogin();
     return null;
   }
 
   const isAdmin = (data ?? []).some((row) => (row.roles?.nombre ?? "").toLowerCase() === "administrador");
   if (!isAdmin) {
     await supabaseDb.auth.signOut();
-    window.location.replace("index.html");
+    redirectToLogin();
     return null;
   }
 
   return session.user;
 }
 
-async function initialize() {
-  const user = await ensureAuthenticated();
-  if (!user) return;
-
-  await Promise.all([loadCatalogs(), loadUsers()]);
-  registerEventListeners();
+function redirectToLogin() {
+  window.location.replace("index.html");
 }
 
-async function loadCatalogs() {
-  const [areas, jerarquias, roles] = await Promise.all([
-    supabaseDb.from("areas").select("id,nombre").eq("activo", true).order("nombre", { ascending: true }),
-    supabaseDb.from("jerarquias").select("id,nombre,nivel").order("nivel", { ascending: true }),
-    supabaseDb.from("roles").select("id,nombre").order("nombre", { ascending: true })
-  ]);
-
-  if (areas.error) console.error("Error al cargar áreas", areas.error);
-  if (jerarquias.error) console.error("Error al cargar jerarquías", jerarquias.error);
-  if (roles.error) console.error("Error al cargar roles", roles.error);
-
-  state.areas = areas.data ?? [];
-  state.jerarquias = jerarquias.data ?? [];
-  state.roles = roles.data ?? [];
-
-  renderCatalog(selectors.areaSelect, state.areas, "Selecciona un área");
-  renderCatalog(selectors.jerarquiaSelect, state.jerarquias, "Selecciona una jerarquía", (item) =>
-    `${item.nombre} (Nivel ${item.nivel})`
-  );
-  renderCatalog(selectors.roleSelect, state.roles, "Selecciona un rol (opcional)");
-}
-
-function renderCatalog(select, items, placeholder, formatter = (item) => item.nombre) {
-  if (!select) return;
-  select.innerHTML = "";
-
-  const defaultOption = document.createElement("option");
-  defaultOption.value = "";
-  defaultOption.textContent = placeholder;
-  defaultOption.disabled = true;
-  defaultOption.selected = true;
-  select.append(defaultOption);
-
-  items.forEach((item) => {
-    const option = document.createElement("option");
-    option.value = item.id;
-    option.textContent = formatter(item);
-    select.append(option);
-  });
-}
-
-async function loadUsers() {
-  if (selectors.usersTableBody) {
-    selectors.usersTableBody.innerHTML = `<tr><td colspan="6" class="table__empty">Cargando usuarios…</td></tr>`;
-  }
-
-  const { data, error } = await supabaseDb
-    .from("usuarios")
-    .select(
-      `id,nombre,apellido,correo,activo,created_at,
-      areas:area_id(id,nombre),
-      jerarquias:jerarquia_id(id,nombre,nivel),
-      usuarios_roles(roles:rol_id(id,nombre))`
-    )
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error("Error al obtener usuarios", error);
-    if (selectors.usersTableBody) {
-      selectors.usersTableBody.innerHTML = `<tr><td colspan="6" class="table__empty">Ocurrió un error al cargar los usuarios.</td></tr>`;
-    }
-    return;
-  }
-
-  state.users = (data ?? []).map((user) => ({
-    ...user,
-    roles: (user.usuarios_roles ?? []).map((entry) => entry.roles).filter(Boolean)
-  }));
-
-  renderUsers();
-}
-
-function renderUsers() {
-  if (!selectors.usersTableBody) return;
-
-  const filteredUsers = applyFilters(state.users);
-
-  if (!filteredUsers.length) {
-    selectors.usersTableBody.innerHTML = `<tr><td colspan="6" class="table__empty">No hay usuarios que coincidan con los filtros seleccionados.</td></tr>`;
-    if (selectors.panelSummary) selectors.panelSummary.textContent = "";
-    return;
-  }
-
-  const rows = filteredUsers
-    .map((user) => {
-      const fullName = `${user.nombre ?? ""} ${user.apellido ?? ""}`.trim();
-      const area = user.areas?.nombre ?? "Sin área";
-      const jerarquia = user.jerarquias?.nombre ? `${user.jerarquias.nombre}` : "Sin jerarquía";
-      const statusClass = user.activo ? "badge badge--success" : "badge badge--danger";
-      const statusLabel = user.activo ? "Activo" : "Inactivo";
-      const roleLabel = user.roles?.[0]?.nombre ?? "Sin rol";
-
-      return `<tr data-user-id="${user.id}">
-        <td>
-          <div class="table__primary">${fullName || "Sin nombre"}</div>
-          <div class="table__meta">${roleLabel}</div>
-        </td>
-        <td>${user.correo ?? "-"}</td>
-        <td>${area}</td>
-        <td>${jerarquia}</td>
-        <td><span class="${statusClass}">${statusLabel}</span></td>
-        <td>
-          <div class="table__actions">
-            <button class="btn btn--ghost" data-action="edit" type="button">Editar</button>
-            <button class="btn btn--ghost" data-action="toggle" type="button">${user.activo ? "Desactivar" : "Activar"}</button>
-            <button class="btn btn--ghost" data-action="delete" type="button">Eliminar</button>
-          </div>
-        </td>
-      </tr>`;
-    })
-    .join("");
-
-  selectors.usersTableBody.innerHTML = rows;
-  if (selectors.panelSummary) {
-    selectors.panelSummary.textContent = `${filteredUsers.length} usuario(s) listados`;
-  }
-}
-
-function applyFilters(users) {
-  const query = state.filters.query.trim().toLowerCase();
-  const status = state.filters.status;
-
-  return users.filter((user) => {
-    const matchesQuery = !query
-      || `${user.nombre ?? ""} ${user.apellido ?? ""}`.toLowerCase().includes(query)
-      || (user.correo ?? "").toLowerCase().includes(query)
-      || (user.areas?.nombre ?? "").toLowerCase().includes(query);
-
-    const matchesStatus =
-      status === "todos" || (status === "activos" && user.activo) || (status === "inactivos" && !user.activo);
-
-    return matchesQuery && matchesStatus;
-  });
-}
-
-function registerEventListeners() {
+function registerGlobalEventListeners() {
   selectors.logoutButton?.addEventListener("click", async () => {
     await supabaseDb.auth.signOut();
-    window.location.replace("index.html");
+    redirectToLogin();
   });
 
-  selectors.newUserButton?.addEventListener("click", () => {
-    state.editingUser = null;
-    openDialog("Nuevo usuario");
+  selectors.navigationLinks.forEach((link) => {
+    link.addEventListener("click", async (event) => {
+      event.preventDefault();
+      const moduleKey = link.dataset.moduleTarget;
+      if (!moduleKey || moduleKey === currentModuleKey) return;
+      await loadModule(moduleKey);
+    });
   });
+}
 
-  selectors.dialogClose?.addEventListener("click", () => closeDialog());
-  selectors.dialogCancel?.addEventListener("click", () => closeDialog());
+async function loadModule(moduleKey) {
+  const definition = moduleDefinitions[moduleKey];
+  if (!definition || !selectors.moduleContainer) return;
 
-  selectors.userDialog?.addEventListener("cancel", (event) => {
-    event.preventDefault();
-    closeDialog();
-  });
+  currentModuleKey = moduleKey;
+  setActiveNavigation(moduleKey);
+  updateSubtitle(definition.subtitle);
+  showLoadingState();
 
-  selectors.usersTableBody?.addEventListener("click", async (event) => {
-    const target = event.target;
-    if (!(target instanceof HTMLElement)) return;
-    const action = target.dataset.action;
-    if (!action) return;
+  const template = document.getElementById(definition.templateId);
+  if (!template) {
+    console.error(`No se encontró la plantilla para el módulo ${moduleKey}`);
+    hideLoadingState();
+    return;
+  }
 
-    const row = target.closest("tr[data-user-id]");
-    const userId = row?.dataset.userId;
-    if (!userId) return;
+  const content = template.content.cloneNode(true);
+  selectors.moduleContainer.replaceChildren(content);
 
-    const user = state.users.find((item) => item.id === userId);
-    if (!user) return;
+  try {
+    await definition.initialize(currentUser);
+  } catch (error) {
+    console.error(`Error al cargar el módulo ${moduleKey}`, error);
+  }
 
-    if (action === "edit") {
-      state.editingUser = user;
-      openDialog("Editar usuario", user);
-      return;
-    }
+  hideLoadingState();
+}
 
-    if (action === "toggle") {
-      await toggleUserStatus(user);
-      return;
-    }
-
-    if (action === "delete") {
-      const confirmDelete = window.confirm("¿Deseas eliminar este usuario? Esta acción es irreversible.");
-      if (!confirmDelete) return;
-      await deleteUser(user);
-    }
-  });
-
-  selectors.searchInput?.addEventListener("input", (event) => {
-    const target = event.target;
-    if (!(target instanceof HTMLInputElement)) return;
-    state.filters.query = target.value;
-    renderUsers();
-  });
-
-  selectors.statusSelect?.addEventListener("change", (event) => {
-    const target = event.target;
-    if (!(target instanceof HTMLSelectElement)) return;
-    state.filters.status = target.value;
-    renderUsers();
-  });
-
-  selectors.userForm?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-
-    if (!selectors.userForm) return;
-    const formData = new FormData(selectors.userForm);
-    const payload = {
-      nombre: String(formData.get("nombre") ?? "").trim(),
-      apellido: String(formData.get("apellido") ?? "").trim(),
-      correo: String(formData.get("correo") ?? "").trim(),
-      area_id: Number(formData.get("area_id")) || null,
-      jerarquia_id: Number(formData.get("jerarquia_id")) || null,
-      activo: selectors.activeCheckbox?.checked ?? true,
-      rol_id: Number(formData.get("rol_id")) || null
-    };
-
-    if (!payload.nombre || !payload.apellido || !payload.correo || !payload.area_id || !payload.jerarquia_id) {
-      setDialogHint("Completa los campos obligatorios", true);
-      return;
-    }
-
-    setDialogProcessing(true);
-
-    if (state.editingUser) {
-      await updateUser(state.editingUser.id, payload);
+function setActiveNavigation(moduleKey) {
+  selectors.navigationLinks.forEach((link) => {
+    const isActive = link.dataset.moduleTarget === moduleKey;
+    link.classList.toggle("nav-menu__link--active", isActive);
+    if (isActive) {
+      link.setAttribute("aria-current", "page");
     } else {
-      await createUser(payload);
+      link.removeAttribute("aria-current");
     }
-
-    setDialogProcessing(false);
   });
 }
 
-function openDialog(title, user = null) {
-  if (selectors.dialogTitle) selectors.dialogTitle.textContent = title;
-  setDialogHint("");
-  if (!selectors.userForm) return;
-  selectors.userForm.reset();
-
-  if (selectors.areaSelect) selectors.areaSelect.value = "";
-  if (selectors.jerarquiaSelect) selectors.jerarquiaSelect.value = "";
-  if (selectors.roleSelect) selectors.roleSelect.value = "";
-  if (selectors.activeCheckbox) selectors.activeCheckbox.checked = true;
-
-  if (user) {
-    const nameField = selectors.userForm.querySelector("#user-name");
-    const lastnameField = selectors.userForm.querySelector("#user-lastname");
-    const emailField = selectors.userForm.querySelector("#user-email");
-
-    if (nameField instanceof HTMLInputElement) nameField.value = user.nombre ?? "";
-    if (lastnameField instanceof HTMLInputElement) lastnameField.value = user.apellido ?? "";
-    if (emailField instanceof HTMLInputElement) emailField.value = user.correo ?? "";
-    if (selectors.areaSelect) selectors.areaSelect.value = user.areas?.id ?? "";
-    if (selectors.jerarquiaSelect) selectors.jerarquiaSelect.value = user.jerarquias?.id ?? "";
-    if (selectors.activeCheckbox) selectors.activeCheckbox.checked = Boolean(user.activo);
-    if (selectors.roleSelect) selectors.roleSelect.value = user.roles?.[0]?.id ?? "";
-  }
-
-  selectors.userDialog?.showModal();
+function updateSubtitle(subtitle) {
+  if (!selectors.topbarSubtitle) return;
+  selectors.topbarSubtitle.textContent = subtitle;
 }
 
-function closeDialog() {
-  selectors.userDialog?.close();
-  setDialogHint("");
-  state.editingUser = null;
+function showLoadingState() {
+  if (!selectors.moduleContainer) return;
+  selectors.moduleContainer.classList.add("admin-module--loading");
+  selectors.moduleContainer.innerHTML = `
+    <section class="panel panel--elevated admin-module__loading">
+      <header class="panel__header">
+        <div class="panel__heading">
+          <h1 class="panel__title">Cargando módulo…</h1>
+          <p class="panel__subtitle">Por favor espere mientras se prepara la información.</p>
+        </div>
+      </header>
+    </section>
+  `;
 }
 
-function setDialogHint(message, isError = false) {
-  if (!selectors.dialogHint) return;
-  selectors.dialogHint.textContent = message;
-  selectors.dialogHint.classList.toggle("is-error", Boolean(isError));
+function hideLoadingState() {
+  selectors.moduleContainer?.classList.remove("admin-module--loading");
 }
 
-function setDialogProcessing(isProcessing) {
-  if (!selectors.userForm) return;
-  const submitButton = selectors.userForm.querySelector("button[type='submit']");
-  if (!(submitButton instanceof HTMLButtonElement)) return;
-
-  submitButton.disabled = isProcessing;
-  submitButton.textContent = isProcessing ? "Guardando…" : "Guardar";
-}
-
-async function createUser(payload) {
-  try {
-    const newUserId = crypto.randomUUID();
-    const insertPayload = { ...payload, id: newUserId };
-    delete insertPayload.rol_id;
-
-    const { error: userError } = await supabaseDb.from("usuarios").insert([insertPayload]);
-    if (userError) {
-      console.error("Error al crear usuario", userError);
-      setDialogHint("No se pudo crear el usuario. Revisa la consola para más detalles.", true);
-      return;
-    }
-
-    if (payload.rol_id) {
-      const { error: roleError } = await supabaseDb.from("usuarios_roles").insert([
-        {
-          usuario_id: newUserId,
-          rol_id: payload.rol_id
-        }
-      ]);
-      if (roleError) {
-        console.error("Error al asignar rol", roleError);
-        setDialogHint("Usuario creado, pero no se pudo asignar el rol.", true);
-      }
-    }
-
-    setDialogHint("Usuario creado correctamente.");
-    closeDialog();
-    await loadUsers();
-  } catch (error) {
-    console.error("Error inesperado al crear usuario", error);
-    setDialogHint("Ocurrió un error inesperado al crear el usuario.", true);
-  }
-}
-
-async function updateUser(userId, payload) {
-  try {
-    const updatePayload = { ...payload };
-    delete updatePayload.rol_id;
-
-    const { error: updateError } = await supabaseDb.from("usuarios").update(updatePayload).eq("id", userId);
-    if (updateError) {
-      console.error("Error al actualizar usuario", updateError);
-      setDialogHint("No se pudo actualizar el usuario.", true);
-      return;
-    }
-
-    await supabaseDb.from("usuarios_roles").delete().eq("usuario_id", userId);
-
-    if (payload.rol_id) {
-      const { error: roleError } = await supabaseDb.from("usuarios_roles").insert([
-        {
-          usuario_id: userId,
-          rol_id: payload.rol_id
-        }
-      ]);
-      if (roleError) {
-        console.error("Error al actualizar rol", roleError);
-        setDialogHint("Usuario actualizado, pero hubo problemas al asignar el rol.", true);
-      }
-    }
-
-    setDialogHint("Cambios guardados correctamente.");
-    closeDialog();
-    await loadUsers();
-  } catch (error) {
-    console.error("Error inesperado al actualizar usuario", error);
-    setDialogHint("Ocurrió un error inesperado al actualizar el usuario.", true);
-  }
-}
-
-async function toggleUserStatus(user) {
-  try {
-    const { error } = await supabaseDb
-      .from("usuarios")
-      .update({ activo: !user.activo })
-      .eq("id", user.id);
-
-    if (error) {
-      console.error("Error al cambiar estado", error);
-      window.alert("No se pudo actualizar el estado del usuario.");
-      return;
-    }
-
-    await loadUsers();
-  } catch (error) {
-    console.error("Error inesperado al cambiar estado", error);
-  }
-}
-
-async function deleteUser(user) {
-  try {
-    const { error: rolesError } = await supabaseDb
-      .from("usuarios_roles")
-      .delete()
-      .eq("usuario_id", user.id);
-
-    if (rolesError) {
-      console.error("Error al eliminar roles del usuario", rolesError);
-      window.alert("No se pudieron eliminar los roles del usuario.");
-      return;
-    }
-
-    const { error: userError } = await supabaseDb.from("usuarios").delete().eq("id", user.id);
-    if (userError) {
-      console.error("Error al eliminar usuario", userError);
-      window.alert("No se pudo eliminar el usuario.");
-      return;
-    }
-
-    await loadUsers();
-  } catch (error) {
-    console.error("Error inesperado al eliminar usuario", error);
-  }
-}
-
-initialize();
+initApp().catch((error) => {
+  console.error("Error al inicializar la consola de administración", error);
+});
