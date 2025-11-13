@@ -15,46 +15,36 @@
         <span class="topbar__subtitle">Administración de usuarios</span>
       </div>
     </div>
-    <nav class="topbar__nav" aria-label="Menú de administración">
-      <details class="nav-dropdown" open>
-        <summary class="nav-dropdown__trigger">
-          <span class="nav-dropdown__label">Administración</span>
-          <span class="nav-dropdown__icon" aria-hidden="true"></span>
-        </summary>
-        <ul class="nav-dropdown__list">
-          <li>
-            <a class="nav-menu__link nav-menu__link--active" href="#usuarios" data-module-target="usuarios" aria-current="page">
-              <span class="nav-menu__label">Usuarios</span>
-            </a>
-          </li>
-          <li>
-            <a class="nav-menu__link" href="#cursos" data-module-target="cursos">
-              <span class="nav-menu__label">Cursos</span>
-            </a>
-          </li>
-          <li>
-            <a class="nav-menu__link" href="#roles" data-module-target="roles">
-              <span class="nav-menu__label">Roles</span>
-            </a>
-          </li>
-          <li>
-            <a class="nav-menu__link" href="#permisos" data-module-target="permisos">
-              <span class="nav-menu__label">Permisos</span>
-            </a>
-          </li>
-          <li>
-            <a class="nav-menu__link" href="#asignaciones" data-module-target="asignaciones">
-              <span class="nav-menu__label">Asignar permisos</span>
-            </a>
-          </li>
-        </ul>
-      </details>
+    <nav class="topbar__nav" aria-label="Sección de administración">
+      <span class="topbar__nav-label">Administración</span>
     </nav>
   </header>
 
   <main class="admin-main">
     <div class="admin-main__top">
       <button id="btn-logout" class="btn btn--outline" type="button">Cerrar sesión</button>
+    </div>
+    <div class="admin-menu" role="group" aria-label="Paneles de administración">
+      <button
+        class="admin-menu__button admin-menu__button--active"
+        type="button"
+        data-module-target="usuarios"
+        aria-pressed="true"
+      >
+        <span class="admin-menu__label">Usuarios</span>
+      </button>
+      <button class="admin-menu__button" type="button" data-module-target="cursos" aria-pressed="false">
+        <span class="admin-menu__label">Cursos</span>
+      </button>
+      <button class="admin-menu__button" type="button" data-module-target="roles" aria-pressed="false">
+        <span class="admin-menu__label">Roles</span>
+      </button>
+      <button class="admin-menu__button" type="button" data-module-target="permisos" aria-pressed="false">
+        <span class="admin-menu__label">Permisos</span>
+      </button>
+      <button class="admin-menu__button" type="button" data-module-target="asignaciones" aria-pressed="false">
+        <span class="admin-menu__label">Asignar permisos</span>
+      </button>
     </div>
     <div id="module-container" class="admin-module-container">
       <section class="panel panel--elevated admin-module__loading">
