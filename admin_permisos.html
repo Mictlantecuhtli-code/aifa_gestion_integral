@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistema de Capacitación - Permisos</title>
+  <link rel="stylesheet" href="assets/css/main.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script type="module" src="assets/js/admin_permisos.js" defer></script>
+</head>
+<body class="theme-light admin-shell">
+  <header class="topbar">
+    <div class="topbar__brand">
+      <img src="assets/AIFA_logo.png" alt="Logotipo AIFA" class="topbar__logo" />
+      <div class="topbar__titles">
+        <span class="brand">Sistema de Capacitación</span>
+        <span class="topbar__subtitle">Administración de permisos</span>
+      </div>
+    </div>
+    <nav class="topbar__nav" aria-label="Menú de administración">
+      <details class="nav-dropdown" open>
+        <summary class="nav-dropdown__trigger">
+          <span class="nav-dropdown__label">Administración</span>
+          <span class="nav-dropdown__icon" aria-hidden="true"></span>
+        </summary>
+        <ul class="nav-dropdown__list">
+          <li>
+            <a class="nav-menu__link" href="admin.html">
+              <span class="nav-menu__label">Usuarios</span>
+            </a>
+          </li>
+          <li>
+            <a class="nav-menu__link" href="admin_roles.html">
+              <span class="nav-menu__label">Roles</span>
+            </a>
+          </li>
+          <li>
+            <a class="nav-menu__link nav-menu__link--active" href="admin_permisos.html" aria-current="page">
+              <span class="nav-menu__label">Permisos</span>
+            </a>
+          </li>
+          <li>
+            <a class="nav-menu__link" href="admin_roles_permisos.html">
+              <span class="nav-menu__label">Asignar permisos</span>
+            </a>
+          </li>
+        </ul>
+      </details>
+    </nav>
+  </header>
+
+  <main class="admin-main">
+    <div class="admin-main__top">
+      <button id="btn-logout" class="btn btn--outline" type="button">Cerrar sesión</button>
+    </div>
+    <section class="panel panel--elevated">
+      <header class="panel__header">
+        <div class="panel__heading">
+          <h1 class="panel__title">Gestión de permisos</h1>
+          <p class="panel__subtitle">Defina y administre los permisos del sistema.</p>
+        </div>
+        <div class="panel__actions">
+          <button id="btn-new-permission" class="btn btn--primary" type="button">Nuevo permiso</button>
+        </div>
+      </header>
+      <div class="panel__toolbar">
+        <div class="input-group">
+          <label class="sr-only" for="search-permission">Buscar permiso</label>
+          <input id="search-permission" type="search" placeholder="Buscar por código o descripción" />
+        </div>
+      </div>
+      <div class="table-wrapper" role="region" aria-live="polite">
+        <table class="table" aria-describedby="permissions-summary">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Descripción</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="permissions-table-body">
+            <tr>
+              <td colspan="3" class="table__empty">Cargando permisos…</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p id="permissions-summary" class="panel__summary"></p>
+    </section>
+  </main>
+
+  <dialog id="permission-dialog" class="dialog">
+    <form method="dialog" class="dialog__content" id="permission-form">
+      <header class="dialog__header">
+        <h2 id="permission-dialog-title">Nuevo permiso</h2>
+        <button type="button" class="btn btn--ghost" id="permission-dialog-close" aria-label="Cerrar">×</button>
+      </header>
+      <section class="dialog__body">
+        <div class="form form--grid">
+          <div class="form__field">
+            <label for="permission-code">Código</label>
+            <input id="permission-code" name="codigo" required />
+          </div>
+          <div class="form__field">
+            <label for="permission-description">Descripción</label>
+            <textarea id="permission-description" name="descripcion" rows="3" required></textarea>
+          </div>
+        </div>
+        <p class="form__hint" id="permission-dialog-hint" role="status" aria-live="polite"></p>
+      </section>
+      <footer class="dialog__footer">
+        <button type="button" class="btn btn--ghost" id="permission-dialog-cancel">Cancelar</button>
+        <button type="submit" class="btn btn--primary">Guardar</button>
+      </footer>
+    </form>
+  </dialog>
+</body>
+</html>
