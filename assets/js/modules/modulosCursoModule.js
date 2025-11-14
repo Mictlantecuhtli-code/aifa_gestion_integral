@@ -482,3 +482,7 @@ export const modulosCursoModule = {
   }
 };
 
+export async function initializeModulosCursoModule(currentUser) {
+  await modulosCursoModule.init(currentUser);
+}
+
