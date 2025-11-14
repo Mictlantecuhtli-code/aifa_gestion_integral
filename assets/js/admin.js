@@ -4,6 +4,7 @@ import { initializeCursosModule } from "./cursosModule.js";
 import { initializeRolesModule } from "./rolesModule.js";
 import { initializePermisosModule } from "./permisosModule.js";
 import { initializeRolesPermisosModule } from "./rolesPermisosModule.js";
+import { initializeModulosCursoModule } from "./modules/modulosCursoModule.js";
 
 const selectors = {
   logoutButton: document.querySelector("#btn-logout"),
@@ -22,6 +23,11 @@ const moduleDefinitions = {
     templateId: "module-template-cursos",
     subtitle: "Administración de cursos",
     initialize: (user) => initializeCursosModule(user)
+  },
+  "modulos-curso": {
+    templateId: "module-template-modulos-curso",
+    subtitle: "Administración de módulos de curso",
+    initialize: (user) => initializeModulosCursoModule(user)
   },
   roles: {
     templateId: "module-template-roles",
