@@ -1,4 +1,4 @@
-import { supabaseDb } from "./supabaseClient.js";
+import { supabaseDb, supabaseAdminDb, setSupabaseServiceRoleKey } from "./supabaseClient.js";
 
 function createInitialState() {
   return {
@@ -34,7 +34,10 @@ function resolveSelectors() {
     areaSelect: document.querySelector("#user-area"),
     jerarquiaSelect: document.querySelector("#user-rank"),
     roleSelect: document.querySelector("#user-role"),
-    activeCheckbox: document.querySelector("#user-active")
+    activeCheckbox: document.querySelector("#user-active"),
+    serviceRoleNotice: document.querySelector("#service-role-notice"),
+    serviceRoleConfigureButton: document.querySelector("#configure-service-role"),
+    serviceRoleStatus: document.querySelector("#service-role-status")
   };
 }
 
@@ -47,6 +50,7 @@ export async function initializeUsersModule() {
   }
 
   await Promise.all([loadCatalogs(), loadUsers()]);
+  updateServiceRoleNotice();
   registerEventListeners();
 }
 
@@ -315,6 +319,10 @@ function registerEventListeners() {
     renderUsers();
   });
 
+  selectors.serviceRoleConfigureButton?.addEventListener("click", () => {
+    promptForServiceRoleKey();
+  });
+
   selectors.userForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
 
@@ -374,6 +382,7 @@ function openDialog(title, user = null) {
   }
 
   selectors.userDialog?.showModal();
+  updateServiceRoleNotice();
 }
 
 function closeDialog() {
@@ -397,24 +406,126 @@ function setDialogProcessing(isProcessing) {
   submitButton.textContent = isProcessing ? "Guardando…" : "Guardar";
 }
 
+function resolveAuthProvisionErrorMessage(result) {
+  switch (result?.errorCode) {
+    case "NO_SERVICE_ROLE_KEY":
+      return "No hay una Service Role Key configurada para crear usuarios de autenticación.";
+    case "INVITE_RATE_LIMIT":
+      return "Se alcanzó el límite de invitaciones. Intenta nuevamente en unos minutos.";
+    case "INVITE_ERROR":
+      return result?.message ?? "No se pudo crear la cuenta de autenticación.";
+    case "LIST_USERS_FAILED":
+      return "No fue posible verificar si el correo ya estaba registrado.";
+    case "MISSING_USER_ID":
+      return "La cuenta de autenticación no devolvió un identificador válido.";
+    default:
+      return result?.message ?? "Ocurrió un problema al preparar la cuenta de autenticación.";
+  }
+}
+
+async function provisionAuthUser({ nombre, apellido, correo }) {
+  const adminClient = supabaseAdminDb.client;
+  if (!adminClient) {
+    updateServiceRoleNotice();
+    return { errorCode: "NO_SERVICE_ROLE_KEY" };
+  }
+
+  const metadata = { nombre, apellido };
+
+  try {
+    const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(
+      correo,
+      {
+        data: metadata
+      }
+    );
+
+    if (!inviteError && inviteData?.user?.id) {
+      return {
+        userId: inviteData.user.id,
+        invitationSent: Boolean(inviteData?.action_link)
+      };
+    }
+
+    if (!inviteError) {
+      return { errorCode: "MISSING_USER_ID" };
+    }
+
+    const normalizedStatus = inviteError.status ?? inviteError.code;
+    if (normalizedStatus === 429) {
+      return { errorCode: "INVITE_RATE_LIMIT", cause: inviteError };
+    }
+
+    if ([400, 404, 409, 422].includes(normalizedStatus)) {
+      const { data: listData, error: listError } = await adminClient.auth.admin.listUsers({
+        page: 1,
+        perPage: 1,
+        filter: `email.eq.${correo}`
+      });
+
+      if (listError) {
+        console.error("No se pudo consultar usuarios existentes en Supabase Auth", listError);
+        return {
+          errorCode: "LIST_USERS_FAILED",
+          message: listError.message,
+          cause: listError
+        };
+      }
+
+      const existingUser = listData?.users?.[0];
+      if (existingUser?.id) {
+        return {
+          userId: existingUser.id,
+          alreadyExists: true,
+          invitationSent: false
+        };
+      }
+    }
+
+    console.error("No se pudo crear o localizar la cuenta de autenticación", inviteError);
+    return {
+      errorCode: "INVITE_ERROR",
+      message: inviteError.message,
+      cause: inviteError
+    };
+  } catch (error) {
+    console.error("Error inesperado al crear la cuenta de Supabase Auth", error);
+    return {
+      errorCode: "UNEXPECTED",
+      message: error.message,
+      cause: error
+    };
+  }
+}
+
 async function createUser(payload) {
   try {
-    const newUserId = crypto.randomUUID();
+    const authProvision = await provisionAuthUser(payload);
+
+    if (!authProvision?.userId) {
+      const message = resolveAuthProvisionErrorMessage(authProvision);
+      setDialogHint(message, true);
+      if (authProvision?.errorCode === "NO_SERVICE_ROLE_KEY") {
+        updateServiceRoleNotice();
+      }
+      return;
+    }
+
+    const newUserId = authProvision.userId;
     const insertPayload = { ...payload, id: newUserId };
     delete insertPayload.rol_id;
 
-    // 🔍 DEBUG COMPLETO
     console.group("🔍 DEBUG: Creación de Usuario");
+    console.log("🆔 ID de autenticación:", newUserId);
     console.log("📤 Payload completo:", JSON.stringify(insertPayload, null, 2));
-    console.log("🆔 UUID generado:", newUserId);
     console.table({
-      "id": { valor: insertPayload.id, tipo: typeof insertPayload.id },
-      "nombre": { valor: insertPayload.nombre, tipo: typeof insertPayload.nombre },
-      "apellido": { valor: insertPayload.apellido, tipo: typeof insertPayload.apellido },
-      "correo": { valor: insertPayload.correo, tipo: typeof insertPayload.correo },
-      "area_id": { valor: insertPayload.area_id, tipo: typeof insertPayload.area_id },
-      "jerarquia_id": { valor: insertPayload.jerarquia_id, tipo: typeof insertPayload.jerarquia_id },
-      "activo": { valor: insertPayload.activo, tipo: typeof insertPayload.activo }
+      id: { valor: insertPayload.id, tipo: typeof insertPayload.id },
+      nombre: { valor: insertPayload.nombre, tipo: typeof insertPayload.nombre },
+      apellido: { valor: insertPayload.apellido, tipo: typeof insertPayload.apellido },
+      correo: { valor: insertPayload.correo, tipo: typeof insertPayload.correo },
+      area_id: { valor: insertPayload.area_id, tipo: typeof insertPayload.area_id },
+      jerarquia_id: { valor: insertPayload.jerarquia_id, tipo: typeof insertPayload.jerarquia_id },
+      activo: { valor: insertPayload.activo, tipo: typeof insertPayload.activo }
     });
     console.groupEnd();
 
@@ -431,8 +542,7 @@ async function createUser(payload) {
       console.error("Hint:", userError.hint);
       console.error("Objeto completo:", userError);
       console.groupEnd();
-      
-      // Mensajes específicos
+
       const errorMessages = {
         '23505': "Este correo electrónico ya está registrado.",
         '42501': "No tienes permisos para crear usuarios.",
@@ -441,7 +551,7 @@ async function createUser(payload) {
         '22P02': "Tipo de dato incorrecto en algún campo.",
         '409': "Conflicto con los datos existentes."
       };
-      
+
       const message = errorMessages[userError.code] || `Error: ${userError.message}`;
       setDialogHint(message, true);
       return;
@@ -449,29 +559,37 @@ async function createUser(payload) {
 
     console.log("✅ Usuario creado exitosamente:", data);
 
-    // Asignar rol si existe
     if (payload.rol_id) {
       console.log("🎭 Asignando rol:", payload.rol_id);
-      
+
       const { error: roleError } = await supabaseDb
         .from("usuarios_roles")
-        .insert([{
-          usuario_id: newUserId,
-          rol_id: payload.rol_id
-        }])
+        .insert([
+          {
+            usuario_id: newUserId,
+            rol_id: payload.rol_id
+          }
+        ])
         .select();
-      
+
       if (roleError) {
         console.error("⚠️ Error al asignar rol:", roleError);
         setDialogHint("Usuario creado, pero no se pudo asignar el rol.", true);
         await loadUsers();
         return;
       }
-      
+
       console.log("✅ Rol asignado correctamente");
     }
 
-    setDialogHint("Usuario creado correctamente.");
+    const successMessages = ["Usuario creado correctamente."];
+    if (authProvision.invitationSent) {
+      successMessages.push("Se envió una invitación al correo registrado para que active su cuenta.");
+    } else if (authProvision.alreadyExists) {
+      successMessages.push("Se reutilizó la cuenta existente en Supabase Auth.");
+    }
+
+    setDialogHint(successMessages.join(" "));
     closeDialog();
     await loadUsers();
   } catch (error) {
@@ -481,11 +599,10 @@ async function createUser(payload) {
     console.error("Stack:", error.stack);
     console.error("Objeto completo:", error);
     console.groupEnd();
-    
+
     setDialogHint("Ocurrió un error inesperado al crear el usuario.", true);
   }
 }
-
 async function updateUser(userId, payload) {
   try {
     const updatePayload = { ...payload };
@@ -565,5 +682,46 @@ async function deleteUser(user) {
   } catch (error) {
     console.error("Error inesperado al eliminar usuario", error);
   }
+}
+
+function updateServiceRoleNotice() {
+  const hasAdminAccess = supabaseAdminDb.hasAccess();
+  if (selectors.serviceRoleNotice) {
+    selectors.serviceRoleNotice.classList.toggle("is-hidden", hasAdminAccess);
+  }
+  if (selectors.serviceRoleStatus) {
+    selectors.serviceRoleStatus.textContent = hasAdminAccess
+      ? "La creación de usuarios nuevos está habilitada."
+      : "Para crear usuarios nuevos se requiere configurar la Service Role Key.";
+  }
+}
+
+function promptForServiceRoleKey() {
+  const hasAccess = supabaseAdminDb.hasAccess();
+  const placeholder = hasAccess ? "********" : "";
+  const userInput = window.prompt(
+    "Ingresa la Service Role Key de Supabase para permitir la creación de cuentas de autenticación.\n\nDeja el campo en blanco para borrar la configuración almacenada.",
+    placeholder
+  );
+
+  if (userInput === null) {
+    return;
+  }
+
+  const trimmed = userInput.trim();
+  if (!trimmed) {
+    setSupabaseServiceRoleKey("");
+    updateServiceRoleNotice();
+    window.alert("Se eliminó la Service Role Key configurada.");
+    return;
+  }
+
+  if (hasAccess && trimmed === placeholder) {
+    return;
+  }
+
+  setSupabaseServiceRoleKey(trimmed);
+  updateServiceRoleNotice();
+  window.alert("Service Role Key configurada correctamente. Puedes volver a crear usuarios.");
 }
 

@@ -31,6 +31,10 @@ body {
   line-height: 1.5;
 }
 
+.is-hidden {
+  display: none !important;
+}
+
 body.admin-shell {
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
@@ -732,6 +736,31 @@ body.admin-shell .panel {
   padding: 1.25rem;
   border-radius: var(--radius-small);
   border: 1px solid rgba(213, 220, 242, 0.8);
+}
+
+.panel__notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0 0 1.75rem;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-small);
+  border: 1px solid rgba(29, 78, 216, 0.2);
+  background: rgba(29, 78, 216, 0.08);
+}
+
+.panel__notice-message {
+  flex: 1;
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--color-text);
+}
+
+.panel__notice--warning {
+  border-color: rgba(234, 179, 8, 0.45);
+  background: rgba(250, 204, 21, 0.16);
 }
 
 .input-group {
