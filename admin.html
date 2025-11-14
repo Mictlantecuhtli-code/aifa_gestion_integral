@@ -45,6 +45,12 @@
       <button class="admin-menu__button" type="button" data-module-target="materiales" aria-pressed="false">
         <span class="admin-menu__label">Materiales</span>
       </button>
+      <button class="admin-menu__button" type="button" data-module-target="banco-preguntas" aria-pressed="false">
+        <span class="admin-menu__label">Banco de Preguntas</span>
+      </button>
+      <button class="admin-menu__button" type="button" data-module-target="evaluaciones" aria-pressed="false">
+        <span class="admin-menu__label">Evaluaciones</span>
+      </button>
       <button class="admin-menu__button" type="button" data-module-target="roles" aria-pressed="false">
         <span class="admin-menu__label">Roles</span>
       </button>
@@ -538,6 +544,249 @@
           </section>
           <footer class="dialog__footer">
             <button type="button" class="btn btn--ghost" id="material-dialog-cancel">Cancelar</button>
+            <button type="submit" class="btn btn--primary">Guardar</button>
+          </footer>
+        </form>
+      </dialog>
+    </div>
+  </template>
+
+  <template id="module-template-banco-preguntas">
+    <div class="admin-module admin-module--banco-preguntas">
+      <section class="panel panel--elevated">
+        <header class="panel__header">
+          <div class="panel__heading">
+            <h1 class="panel__title">Banco de preguntas</h1>
+            <p class="panel__subtitle">Gestione las preguntas disponibles por lección.</p>
+          </div>
+          <div class="panel__actions">
+            <button id="btn-new-pregunta" class="btn btn--primary" type="button">Nueva pregunta</button>
+          </div>
+        </header>
+        <div class="panel__toolbar">
+          <div class="input-group">
+            <label for="filter-bp-curso">Curso</label>
+            <select id="filter-bp-curso"></select>
+          </div>
+          <div class="input-group">
+            <label for="filter-bp-modulo">Módulo</label>
+            <select id="filter-bp-modulo"></select>
+          </div>
+          <div class="input-group">
+            <label for="filter-bp-leccion">Lección</label>
+            <select id="filter-bp-leccion"></select>
+          </div>
+          <div class="input-group input-group--grow">
+            <label class="sr-only" for="search-preguntas">Buscar pregunta</label>
+            <input id="search-preguntas" type="search" placeholder="Buscar por enunciado" />
+          </div>
+        </div>
+        <div class="table-wrapper" role="region" aria-live="polite">
+          <table class="table" aria-describedby="banco-preguntas-summary">
+            <thead>
+              <tr>
+                <th>Pregunta</th>
+                <th>Tipo</th>
+                <th>Dificultad</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="banco-preguntas-table-body">
+              <tr>
+                <td colspan="5" class="table__empty">Cargando preguntas…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p id="banco-preguntas-summary" class="panel__summary"></p>
+      </section>
+
+      <dialog id="banco-pregunta-dialog" class="dialog">
+        <form method="dialog" class="dialog__content" id="banco-pregunta-form">
+          <header class="dialog__header">
+            <h2 id="banco-pregunta-dialog-title">Nueva pregunta</h2>
+            <button type="button" class="btn btn--ghost" id="banco-pregunta-dialog-close" aria-label="Cerrar">×</button>
+          </header>
+          <section class="dialog__body">
+            <div class="form form--grid">
+              <div class="form__field">
+                <label for="banco-pregunta-curso">Curso</label>
+                <select id="banco-pregunta-curso" required></select>
+              </div>
+              <div class="form__field">
+                <label for="banco-pregunta-modulo">Módulo</label>
+                <select id="banco-pregunta-modulo" required></select>
+              </div>
+              <div class="form__field">
+                <label for="banco-pregunta-leccion">Lección</label>
+                <select id="banco-pregunta-leccion" name="leccion_id" required></select>
+              </div>
+              <div class="form__field form__field--full">
+                <label for="banco-pregunta-enunciado">Enunciado</label>
+                <textarea id="banco-pregunta-enunciado" name="enunciado" rows="3" required></textarea>
+              </div>
+              <div class="form__field">
+                <label for="banco-pregunta-tipo">Tipo</label>
+                <select id="banco-pregunta-tipo" name="tipo" required>
+                  <option value="">Selecciona un tipo</option>
+                  <option value="opcion_multiple">Opción múltiple</option>
+                  <option value="vf">Verdadero / Falso</option>
+                  <option value="abierta">Respuesta abierta</option>
+                </select>
+              </div>
+              <div class="form__field form__field--full" data-field="opciones">
+                <label for="banco-pregunta-opciones">Opciones (JSON)</label>
+                <textarea id="banco-pregunta-opciones" name="opciones" rows="3" placeholder='["Opción A","Opción B"]'></textarea>
+              </div>
+              <div class="form__field form__field--full" data-field="respuesta">
+                <label for="banco-pregunta-respuesta">Respuesta correcta (JSON)</label>
+                <textarea id="banco-pregunta-respuesta" name="respuesta_correcta" rows="3" placeholder='{"respuesta":"Opción A"}'></textarea>
+              </div>
+              <div class="form__field">
+                <label for="banco-pregunta-dificultad">Dificultad</label>
+                <select id="banco-pregunta-dificultad" name="dificultad" required>
+                  <option value="1">1 - Fácil</option>
+                  <option value="2">2 - Media</option>
+                  <option value="3">3 - Difícil</option>
+                </select>
+              </div>
+              <div class="form__field form__field--inline">
+                <input type="checkbox" id="banco-pregunta-activo" name="activo" checked />
+                <label for="banco-pregunta-activo">Pregunta activa</label>
+              </div>
+            </div>
+            <p class="form__hint" id="banco-pregunta-dialog-hint" role="status" aria-live="polite"></p>
+          </section>
+          <footer class="dialog__footer">
+            <button type="button" class="btn btn--ghost" id="banco-pregunta-dialog-cancel">Cancelar</button>
+            <button type="submit" class="btn btn--primary">Guardar</button>
+          </footer>
+        </form>
+      </dialog>
+    </div>
+  </template>
+
+  <template id="module-template-evaluaciones">
+    <div class="admin-module admin-module--evaluaciones">
+      <section class="panel panel--elevated">
+        <header class="panel__header">
+          <div class="panel__heading">
+            <h1 class="panel__title">Evaluaciones</h1>
+            <p class="panel__subtitle">Configure evaluaciones y genere versiones automáticas.</p>
+          </div>
+          <div class="panel__actions">
+            <button id="btn-new-evaluacion" class="btn btn--primary" type="button">Nueva evaluación</button>
+          </div>
+        </header>
+        <div class="panel__toolbar">
+          <div class="input-group">
+            <label for="filter-evaluacion-curso">Curso</label>
+            <select id="filter-evaluacion-curso"></select>
+          </div>
+          <div class="input-group">
+            <label for="filter-evaluacion-modulo">Módulo</label>
+            <select id="filter-evaluacion-modulo"></select>
+          </div>
+          <div class="input-group">
+            <label for="filter-evaluacion-leccion">Lección</label>
+            <select id="filter-evaluacion-leccion"></select>
+          </div>
+          <div class="input-group input-group--grow">
+            <label class="sr-only" for="search-evaluacion">Buscar evaluación</label>
+            <input id="search-evaluacion" type="search" placeholder="Buscar por título o descripción" />
+          </div>
+        </div>
+        <div class="table-wrapper" role="region" aria-live="polite">
+          <table class="table" aria-describedby="evaluaciones-summary">
+            <thead>
+              <tr>
+                <th>Evaluación</th>
+                <th>Configuración</th>
+                <th>Banco</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="evaluaciones-table-body">
+              <tr>
+                <td colspan="5" class="table__empty">Cargando evaluaciones…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p id="evaluaciones-summary" class="panel__summary"></p>
+      </section>
+
+      <section class="panel panel--elevated">
+        <header class="panel__header">
+          <div class="panel__heading">
+            <h2 class="panel__title">Versiones generadas</h2>
+            <p class="panel__subtitle">Consulta las versiones disponibles para la evaluación seleccionada.</p>
+          </div>
+        </header>
+        <div class="panel__body" id="evaluaciones-versiones-panel">
+          <p class="panel__empty">Selecciona una evaluación para ver sus versiones.</p>
+        </div>
+      </section>
+
+      <dialog id="evaluacion-dialog" class="dialog">
+        <form method="dialog" class="dialog__content" id="evaluacion-form">
+          <header class="dialog__header">
+            <h2 id="evaluacion-dialog-title">Nueva evaluación</h2>
+            <button type="button" class="btn btn--ghost" id="evaluacion-dialog-close" aria-label="Cerrar">×</button>
+          </header>
+          <section class="dialog__body">
+            <div class="form form--grid">
+              <div class="form__field">
+                <label for="evaluacion-curso">Curso</label>
+                <select id="evaluacion-curso" required></select>
+              </div>
+              <div class="form__field">
+                <label for="evaluacion-modulo">Módulo</label>
+                <select id="evaluacion-modulo" required></select>
+              </div>
+              <div class="form__field">
+                <label for="evaluacion-leccion">Lección</label>
+                <select id="evaluacion-leccion" name="leccion_id" required></select>
+              </div>
+              <div class="form__field form__field--full">
+                <label for="evaluacion-titulo">Título</label>
+                <input id="evaluacion-titulo" name="titulo" required />
+              </div>
+              <div class="form__field form__field--full">
+                <label for="evaluacion-descripcion">Descripción</label>
+                <textarea id="evaluacion-descripcion" name="descripcion" rows="2"></textarea>
+              </div>
+              <div class="form__field form__field--full">
+                <label for="evaluacion-instrucciones">Instrucciones</label>
+                <textarea id="evaluacion-instrucciones" name="instrucciones" rows="3"></textarea>
+              </div>
+              <div class="form__field">
+                <label for="evaluacion-preguntas">Preguntas por examen</label>
+                <input id="evaluacion-preguntas" name="preguntas_por_examen" type="number" min="1" required />
+              </div>
+              <div class="form__field">
+                <label for="evaluacion-versiones">Versiones</label>
+                <input id="evaluacion-versiones" name="versiones" type="number" min="1" required />
+              </div>
+              <div class="form__field">
+                <label for="evaluacion-intentos">Intentos máximos</label>
+                <input id="evaluacion-intentos" name="intentos_max" type="number" min="1" required />
+              </div>
+              <div class="form__field">
+                <label for="evaluacion-tiempo">Tiempo límite (minutos)</label>
+                <input id="evaluacion-tiempo" name="tiempo_limite" type="number" min="0" />
+              </div>
+              <div class="form__field form__field--inline">
+                <input type="checkbox" id="evaluacion-activo" name="activo" checked />
+                <label for="evaluacion-activo">Evaluación activa</label>
+              </div>
+            </div>
+            <p class="form__hint" id="evaluacion-dialog-hint" role="status" aria-live="polite"></p>
+          </section>
+          <footer class="dialog__footer">
+            <button type="button" class="btn btn--ghost" id="evaluacion-dialog-cancel">Cancelar</button>
             <button type="submit" class="btn btn--primary">Guardar</button>
           </footer>
         </form>

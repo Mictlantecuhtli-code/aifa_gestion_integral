@@ -7,6 +7,8 @@ import { initializeRolesPermisosModule } from "./rolesPermisosModule.js";
 import { initializeModulosCursoModule } from "./modules/modulosCursoModule.js";
 import { initializeLeccionesModule } from "./modules/leccionesModule.js";
 import { initializeMaterialesModule } from "./modules/materialesModule.js";
+import { initializeBancoPreguntasModule } from "./modules/bancoPreguntasModule.js";
+import { initializeEvaluacionesModule } from "./modules/evaluacionesModule.js";
 
 const selectors = {
   logoutButton: document.querySelector("#btn-logout"),
@@ -40,6 +42,16 @@ const moduleDefinitions = {
     templateId: "module-template-materiales",
     subtitle: "Administración de materiales",
     initialize: (user) => initializeMaterialesModule(user)
+  },
+  "banco-preguntas": {
+    templateId: "module-template-banco-preguntas",
+    subtitle: "Banco de preguntas",
+    initialize: (user) => initializeBancoPreguntasModule(user)
+  },
+  evaluaciones: {
+    templateId: "module-template-evaluaciones",
+    subtitle: "Administración de evaluaciones",
+    initialize: (user) => initializeEvaluacionesModule(user)
   },
   roles: {
     templateId: "module-template-roles",
