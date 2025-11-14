@@ -1,6 +1,7 @@
 import { supabaseDb } from "../supabaseClient.js";
 
 const STORAGE_BUCKET = "aifa_integral";
+const PERMISSION_ERROR_MESSAGE = "No tienes permisos para guardar el material. Contacta al administrador del sistema.";
 const FILE_REQUIRED_TYPES = new Set(["pdf", "video", "imagen", "archivo"]);
 const TIPO_LABELS = {
   pdf: "PDF",
@@ -35,6 +36,10 @@ function generateFileName(originalName) {
 function translateSupabaseError(error, context) {
   const message = typeof error?.message === "string" ? error.message : "";
   if (/row-level security/i.test(message)) {
+    const normalizedContext = String(context ?? "").toLowerCase();
+    if (normalizedContext.includes("material")) {
+      return PERMISSION_ERROR_MESSAGE;
+    }
     return `No tienes permisos para ${context}. Contacta al administrador del sistema.`;
   }
   return null;
@@ -240,8 +245,13 @@ export const materialesModule = {
       const { data, error } = await query;
       if (error) {
         console.error("Error al cargar materiales", error);
+        const friendly = translateSupabaseError(error, "listar materiales");
+        if (friendly) {
+          console.error(friendly);
+        }
+        const message = friendly ?? "No se pudieron cargar los materiales.";
         if (this.selectors.tableBody) {
-          this.selectors.tableBody.innerHTML = `<tr><td colspan="4" class="table__empty">No se pudieron cargar los materiales.</td></tr>`;
+          this.selectors.tableBody.innerHTML = `<tr><td colspan="4" class="table__empty">${message}</td></tr>`;
         }
         if (this.selectors.summary) this.selectors.summary.textContent = "";
         return;
@@ -251,8 +261,13 @@ export const materialesModule = {
       this.renderMateriales();
     } catch (error) {
       console.error("Error inesperado al cargar materiales", error);
+      const friendly = translateSupabaseError(error, "listar materiales");
+      if (friendly) {
+        console.error(friendly);
+      }
+      const message = friendly ?? "Ocurrió un error al cargar los materiales.";
       if (this.selectors.tableBody) {
-        this.selectors.tableBody.innerHTML = `<tr><td colspan="4" class="table__empty">Ocurrió un error al cargar los materiales.</td></tr>`;
+        this.selectors.tableBody.innerHTML = `<tr><td colspan="4" class="table__empty">${message}</td></tr>`;
       }
       if (this.selectors.summary) this.selectors.summary.textContent = "";
     }
@@ -415,7 +430,10 @@ export const materialesModule = {
       const { error } = await supabaseDb.from("materiales").insert([insertPayload]);
       if (error) {
         console.error("Error al crear material", error);
-        const friendly = translateSupabaseError(error, "crear materiales");
+        const friendly = translateSupabaseError(error, "guardar el material");
+        if (friendly) {
+          console.error(friendly);
+        }
         this.setDialogHint(friendly ?? "No se pudo crear el material. Revisa la consola para más detalles.", true);
         return false;
       }
@@ -423,7 +441,10 @@ export const materialesModule = {
       return true;
     } catch (error) {
       console.error("Error inesperado al crear material", error);
-      const friendly = translateSupabaseError(error, "crear materiales");
+      const friendly = translateSupabaseError(error, "guardar el material");
+      if (friendly) {
+        console.error(friendly);
+      }
       this.setDialogHint(friendly ?? "Ocurrió un error inesperado al crear el material.", true);
       return false;
     }
@@ -441,7 +462,10 @@ export const materialesModule = {
       const { error } = await supabaseDb.from("materiales").update(updatePayload).eq("id", materialId);
       if (error) {
         console.error("Error al actualizar material", error);
-        const friendly = translateSupabaseError(error, "actualizar materiales");
+        const friendly = translateSupabaseError(error, "guardar el material");
+        if (friendly) {
+          console.error(friendly);
+        }
         this.setDialogHint(friendly ?? "No se pudo actualizar el material.", true);
         return false;
       }
@@ -449,7 +473,10 @@ export const materialesModule = {
       return true;
     } catch (error) {
       console.error("Error inesperado al actualizar material", error);
-      const friendly = translateSupabaseError(error, "actualizar materiales");
+      const friendly = translateSupabaseError(error, "guardar el material");
+      if (friendly) {
+        console.error(friendly);
+      }
       this.setDialogHint(friendly ?? "Ocurrió un error inesperado al actualizar el material.", true);
       return false;
     }
@@ -506,6 +533,7 @@ export const materialesModule = {
       console.error("Error al subir archivo", uploadError);
       const friendly = translateSupabaseError(uploadError, "subir archivos de materiales");
       if (friendly) {
+        console.error(friendly);
         this.setDialogHint(friendly, true);
         markFileInputError(this.selectors.archivoInput, friendly);
       }
@@ -520,6 +548,7 @@ export const materialesModule = {
       console.error("Error al obtener URL pública del archivo", urlError);
       const friendly = translateSupabaseError(urlError, "obtener la URL pública del material");
       if (friendly) {
+        console.error(friendly);
         this.setDialogHint(friendly, true);
         markFileInputError(this.selectors.archivoInput, friendly);
       }
@@ -705,6 +734,7 @@ export const materialesModule = {
         console.error("Error al guardar material", error);
         const friendly = translateSupabaseError(error, "guardar el material");
         if (friendly) {
+          console.error(friendly);
           this.setDialogHint(friendly, true);
           if (requiresFile(data.tipo)) {
             markFileInputError(this.selectors.archivoInput, friendly);
