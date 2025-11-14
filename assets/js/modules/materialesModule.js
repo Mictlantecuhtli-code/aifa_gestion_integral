@@ -1,6 +1,7 @@
 import { supabaseDb } from "../supabaseClient.js";
 
 const STORAGE_BUCKET = "aifa_integral";
+const STORAGE_S3_ENDPOINT = "https://dpvsmibnlkwsbdmsnsjr.storage.supabase.co/storage/v1/s3";
 const PERMISSION_ERROR_MESSAGE = "No tienes permisos para guardar el material. Contacta al administrador del sistema.";
 const FILE_REQUIRED_TYPES = new Set(["pdf", "video", "imagen", "archivo"]);
 const TIPO_LABELS = {
@@ -33,14 +34,20 @@ function generateFileName(originalName) {
   return `${random}.${extension}`;
 }
 
+const ROW_LEVEL_SECURITY_PATTERN = /row-level security/i;
+
+function isPermissionError(error) {
+  return ROW_LEVEL_SECURITY_PATTERN.test(String(error?.message ?? ""));
+}
+
 function translateSupabaseError(error, context) {
   const message = typeof error?.message === "string" ? error.message : "";
-  if (/row-level security/i.test(message)) {
+  if (ROW_LEVEL_SECURITY_PATTERN.test(message)) {
     const normalizedContext = String(context ?? "").toLowerCase();
     if (normalizedContext.includes("material")) {
-      return PERMISSION_ERROR_MESSAGE;
+      return `${PERMISSION_ERROR_MESSAGE} Endpoint: ${STORAGE_S3_ENDPOINT}`;
     }
-    return `No tienes permisos para ${context}. Contacta al administrador del sistema.`;
+    return `No tienes permisos para ${context}. Contacta al administrador del sistema. Endpoint: ${STORAGE_S3_ENDPOINT}`;
   }
   return null;
 }
@@ -65,6 +72,30 @@ async function removeFileFromStorage(path) {
     }
   } catch (removeError) {
     console.error("Error inesperado al intentar eliminar el archivo temporal", removeError);
+  }
+}
+
+async function uploadUsingSignedUrl(filePath, file, options = {}) {
+  try {
+    const { data: signedData, error: signedError } = await supabaseDb.storage
+      .from(STORAGE_BUCKET)
+      .createSignedUploadUrl(filePath);
+
+    if (signedError) {
+      return { error: signedError };
+    }
+
+    const { error: signedUploadError } = await supabaseDb.storage
+      .from(STORAGE_BUCKET)
+      .uploadToSignedUrl(filePath, signedData.token, file, options);
+
+    if (signedUploadError) {
+      return { error: signedUploadError };
+    }
+
+    return { error: null };
+  } catch (error) {
+    return { error };
   }
 }
 
@@ -524,20 +555,35 @@ export const materialesModule = {
     clearFileInputError(this.selectors.archivoInput);
     const fileName = generateFileName(file.name);
     const filePath = `materiales/${fileName}`;
+    const uploadOptions = {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: file.type || undefined
+    };
 
     const { error: uploadError } = await supabaseDb.storage
       .from(STORAGE_BUCKET)
-      .upload(filePath, file, { cacheControl: "3600", upsert: false });
+      .upload(filePath, file, uploadOptions);
 
-    if (uploadError) {
+    let finalError = uploadError;
+
+    if (uploadError && isPermissionError(uploadError)) {
       console.error("Error al subir archivo", uploadError);
-      const friendly = translateSupabaseError(uploadError, "subir archivos de materiales");
+      console.error("Endpoint de almacenamiento restringido:", STORAGE_S3_ENDPOINT);
+      console.warn("Intentando subida mediante URL firmada debido a restricciones de seguridad.");
+      const { error: signedError } = await uploadUsingSignedUrl(filePath, file, uploadOptions);
+      finalError = signedError ?? null;
+    }
+
+    if (finalError) {
+      console.error("Error al subir archivo", finalError);
+      const friendly = translateSupabaseError(finalError, "subir archivos de materiales");
       if (friendly) {
         console.error(friendly);
         this.setDialogHint(friendly, true);
         markFileInputError(this.selectors.archivoInput, friendly);
       }
-      throw uploadError;
+      throw finalError;
     }
 
     const { data: urlData, error: urlError } = await supabaseDb.storage
