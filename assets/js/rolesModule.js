@@ -8,7 +8,8 @@ function createInitialState() {
       status: "todos"
     },
     editingRole: null,
-    currentUser: null
+    currentUser: null,
+    supportsActiveField: true
   };
 }
 
@@ -53,10 +54,21 @@ async function loadRoles() {
     selectors.rolesTableBody.innerHTML = `<tr><td colspan="5" class="table__empty">Cargando roles…</td></tr>`;
   }
 
-  const { data, error } = await supabaseDb
+  let supportsActiveField = true;
+  let rolesResponse = await supabaseDb
     .from("roles")
     .select("id,nombre,descripcion,activo,created_at")
     .order("created_at", { ascending: false });
+
+  if (rolesResponse.error && rolesResponse.error.code === "42703") {
+    supportsActiveField = false;
+    rolesResponse = await supabaseDb
+      .from("roles")
+      .select("id,nombre,descripcion,created_at")
+      .order("created_at", { ascending: false });
+  }
+
+  const { data, error } = rolesResponse;
 
   if (error) {
     console.error("Error al cargar roles", error);
@@ -67,7 +79,9 @@ async function loadRoles() {
     return;
   }
 
+  state.supportsActiveField = supportsActiveField;
   state.roles = data ?? [];
+  updateActiveFieldAvailability();
   renderRoles();
 }
 
@@ -122,7 +136,10 @@ function applyFilters(roles) {
 
     const activo = role.activo ?? true;
     const matchesStatus =
-      statusFilter === "todos" || (statusFilter === "activos" && activo) || (statusFilter === "inactivos" && !activo);
+      statusFilter === "todos" ||
+      (!state.supportsActiveField && statusFilter === "activos") ||
+      (state.supportsActiveField &&
+        ((statusFilter === "activos" && activo) || (statusFilter === "inactivos" && !activo)));
 
     return matchesQuery && matchesStatus;
   });
@@ -212,12 +229,19 @@ function openDialog(title, role = null) {
   setDialogHint("");
   selectors.roleForm?.reset();
 
-  if (selectors.roleActiveCheckbox) selectors.roleActiveCheckbox.checked = true;
+  if (selectors.roleActiveCheckbox) {
+    selectors.roleActiveCheckbox.checked = true;
+    selectors.roleActiveCheckbox.disabled = !state.supportsActiveField;
+    const wrapper = selectors.roleActiveCheckbox.closest(".form__field");
+    if (wrapper instanceof HTMLElement) wrapper.hidden = !state.supportsActiveField;
+  }
 
   if (role) {
     if (selectors.roleNameInput) selectors.roleNameInput.value = role.nombre ?? "";
     if (selectors.roleDescriptionInput) selectors.roleDescriptionInput.value = role.descripcion ?? "";
-    if (selectors.roleActiveCheckbox) selectors.roleActiveCheckbox.checked = role.activo ?? true;
+    if (selectors.roleActiveCheckbox && state.supportsActiveField) {
+      selectors.roleActiveCheckbox.checked = role.activo ?? true;
+    }
   }
 
   selectors.roleDialog?.showModal();
@@ -265,6 +289,12 @@ function validateRole(payload) {
 }
 
 function getRoleStatus(role) {
+  if (!state.supportsActiveField) {
+    return {
+      label: "No disponible",
+      className: "badge"
+    };
+  }
   const isActive = role.activo ?? true;
   return {
     label: isActive ? "Activo" : "Inactivo",
@@ -289,6 +319,7 @@ async function createRole(payload) {
   try {
     const insertPayload = { ...payload };
     if (state.currentUser?.id) insertPayload.creado_por = state.currentUser.id;
+    if (!state.supportsActiveField) delete insertPayload.activo;
 
     const { error } = await supabaseDb.from("roles").insert([insertPayload]);
     if (error) {
@@ -309,6 +340,7 @@ async function createRole(payload) {
 async function updateRole(roleId, payload) {
   try {
     const updatePayload = { ...payload };
+    if (!state.supportsActiveField) delete updatePayload.activo;
     const { error } = await supabaseDb.from("roles").update(updatePayload).eq("id", roleId);
     if (error) {
       console.error("Error al actualizar rol", error);
@@ -322,6 +354,21 @@ async function updateRole(roleId, payload) {
   } catch (error) {
     console.error("Error inesperado al actualizar rol", error);
     setDialogHint("Ocurrió un error inesperado al actualizar el rol.", true);
+  }
+}
+
+function updateActiveFieldAvailability() {
+  if (selectors.statusSelect) {
+    const filterWrapper = selectors.statusSelect.closest(".input-group");
+    if (filterWrapper instanceof HTMLElement) filterWrapper.hidden = !state.supportsActiveField;
+    selectors.statusSelect.disabled = !state.supportsActiveField;
+    if (!state.supportsActiveField) selectors.statusSelect.value = "todos";
+  }
+
+  if (selectors.roleActiveCheckbox) {
+    selectors.roleActiveCheckbox.disabled = !state.supportsActiveField;
+    const wrapper = selectors.roleActiveCheckbox.closest(".form__field");
+    if (wrapper instanceof HTMLElement) wrapper.hidden = !state.supportsActiveField;
   }
 }
 
