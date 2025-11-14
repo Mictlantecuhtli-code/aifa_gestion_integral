@@ -403,31 +403,85 @@ async function createUser(payload) {
     const insertPayload = { ...payload, id: newUserId };
     delete insertPayload.rol_id;
 
-    const { error: userError } = await supabaseDb.from("usuarios").insert([insertPayload]);
+    // 🔍 DEBUG COMPLETO
+    console.group("🔍 DEBUG: Creación de Usuario");
+    console.log("📤 Payload completo:", JSON.stringify(insertPayload, null, 2));
+    console.log("🆔 UUID generado:", newUserId);
+    console.table({
+      "id": { valor: insertPayload.id, tipo: typeof insertPayload.id },
+      "nombre": { valor: insertPayload.nombre, tipo: typeof insertPayload.nombre },
+      "apellido": { valor: insertPayload.apellido, tipo: typeof insertPayload.apellido },
+      "correo": { valor: insertPayload.correo, tipo: typeof insertPayload.correo },
+      "area_id": { valor: insertPayload.area_id, tipo: typeof insertPayload.area_id },
+      "jerarquia_id": { valor: insertPayload.jerarquia_id, tipo: typeof insertPayload.jerarquia_id },
+      "activo": { valor: insertPayload.activo, tipo: typeof insertPayload.activo }
+    });
+    console.groupEnd();
+
+    const { data, error: userError } = await supabaseDb
+      .from("usuarios")
+      .insert([insertPayload])
+      .select();
+
     if (userError) {
-      console.error("Error al crear usuario", userError);
-      setDialogHint("No se pudo crear el usuario. Revisa la consola para más detalles.", true);
+      console.group("❌ ERROR AL INSERTAR USUARIO");
+      console.error("Código:", userError.code);
+      console.error("Mensaje:", userError.message);
+      console.error("Detalles:", userError.details);
+      console.error("Hint:", userError.hint);
+      console.error("Objeto completo:", userError);
+      console.groupEnd();
+      
+      // Mensajes específicos
+      const errorMessages = {
+        '23505': "Este correo electrónico ya está registrado.",
+        '42501': "No tienes permisos para crear usuarios.",
+        '23503': "El área o jerarquía seleccionada no existe.",
+        '23502': "Falta un campo obligatorio.",
+        '22P02': "Tipo de dato incorrecto en algún campo.",
+        '409': "Conflicto con los datos existentes."
+      };
+      
+      const message = errorMessages[userError.code] || `Error: ${userError.message}`;
+      setDialogHint(message, true);
       return;
     }
 
+    console.log("✅ Usuario creado exitosamente:", data);
+
+    // Asignar rol si existe
     if (payload.rol_id) {
-      const { error: roleError } = await supabaseDb.from("usuarios_roles").insert([
-        {
+      console.log("🎭 Asignando rol:", payload.rol_id);
+      
+      const { error: roleError } = await supabaseDb
+        .from("usuarios_roles")
+        .insert([{
           usuario_id: newUserId,
           rol_id: payload.rol_id
-        }
-      ]);
+        }])
+        .select();
+      
       if (roleError) {
-        console.error("Error al asignar rol", roleError);
+        console.error("⚠️ Error al asignar rol:", roleError);
         setDialogHint("Usuario creado, pero no se pudo asignar el rol.", true);
+        await loadUsers();
+        return;
       }
+      
+      console.log("✅ Rol asignado correctamente");
     }
 
     setDialogHint("Usuario creado correctamente.");
     closeDialog();
     await loadUsers();
   } catch (error) {
-    console.error("Error inesperado al crear usuario", error);
+    console.group("💥 ERROR INESPERADO");
+    console.error("Tipo:", error.constructor.name);
+    console.error("Mensaje:", error.message);
+    console.error("Stack:", error.stack);
+    console.error("Objeto completo:", error);
+    console.groupEnd();
+    
     setDialogHint("Ocurrió un error inesperado al crear el usuario.", true);
   }
 }
