@@ -52,7 +52,12 @@ export async function initializeUsersModule() {
 
 async function loadCatalogs() {
   const [areas, jerarquias, roles] = await Promise.all([
-    supabaseDb.from("areas").select("id,nombre").eq("activo", true).order("nombre", { ascending: true }),
+    supabaseDb
+      .from("areas")
+      .select("id,nombre,parent_area_id,orden_visualizacion,nivel")
+      .eq("estado", "ACTIVO")
+      .order("nivel", { ascending: true })
+      .order("orden_visualizacion", { ascending: true }),
     supabaseDb.from("jerarquias").select("id,nombre,nivel").order("nivel", { ascending: true }),
     supabaseDb.from("roles").select("id,nombre").order("nombre", { ascending: true })
   ]);
@@ -65,7 +70,7 @@ async function loadCatalogs() {
   state.jerarquias = jerarquias.data ?? [];
   state.roles = roles.data ?? [];
 
-  renderCatalog(selectors.areaSelect, state.areas, "Selecciona un área");
+  renderAreasCatalog(selectors.areaSelect, state.areas, "Selecciona un área");
   renderCatalog(selectors.jerarquiaSelect, state.jerarquias, "Selecciona una jerarquía", (item) =>
     `${item.nombre} (Nivel ${item.nivel})`
   );
@@ -89,6 +94,72 @@ function renderCatalog(select, items, placeholder, formatter = (item) => item.no
     option.textContent = formatter(item);
     select.append(option);
   });
+}
+
+function renderAreasCatalog(select, areas, placeholder) {
+  if (!select) return;
+  select.innerHTML = "";
+
+  const defaultOption = document.createElement("option");
+  defaultOption.value = "";
+  defaultOption.textContent = placeholder;
+  defaultOption.disabled = true;
+  defaultOption.selected = true;
+  select.append(defaultOption);
+
+  const hierarchicalAreas = buildAreaHierarchy(areas);
+
+  hierarchicalAreas.forEach(({ area, depth }) => {
+    const option = document.createElement("option");
+    option.value = area.id;
+    const indent = depth > 0 ? `${"\u00A0\u00A0".repeat(depth)}- ` : "";
+    option.textContent = `${indent}${area.nombre}`;
+    select.append(option);
+  });
+}
+
+function buildAreaHierarchy(areas) {
+  if (!Array.isArray(areas) || !areas.length) return [];
+
+  const childrenByParent = new Map();
+
+  const sortAreas = (list) =>
+    list.sort((a, b) => {
+      const orderA = typeof a.orden_visualizacion === "number" ? a.orden_visualizacion : Number.MAX_SAFE_INTEGER;
+      const orderB = typeof b.orden_visualizacion === "number" ? b.orden_visualizacion : Number.MAX_SAFE_INTEGER;
+      if (orderA !== orderB) return orderA - orderB;
+      return (a.nombre ?? "").localeCompare(b.nombre ?? "");
+    });
+
+  areas.forEach((area) => {
+    if (!area || !area.parent_area_id) {
+      return;
+    }
+    const collection = childrenByParent.get(area.parent_area_id) ?? [];
+    collection.push(area);
+    childrenByParent.set(area.parent_area_id, collection);
+  });
+
+  childrenByParent.forEach((list, key) => {
+    childrenByParent.set(key, sortAreas(list));
+  });
+
+  const rootAreas = sortAreas(
+    areas.filter((area) => area && area.nivel === 2)
+  );
+
+  const result = [];
+
+  const traverse = (area, depth) => {
+    if (!area) return;
+    result.push({ area, depth });
+    const children = childrenByParent.get(area.id) ?? [];
+    children.forEach((child) => traverse(child, depth + 1));
+  };
+
+  rootAreas.forEach((area) => traverse(area, 0));
+
+  return result;
 }
 
 async function loadUsers() {
@@ -249,11 +320,12 @@ function registerEventListeners() {
 
     if (!selectors.userForm) return;
     const formData = new FormData(selectors.userForm);
+    const areaIdValue = String(formData.get("area_id") ?? "").trim();
     const payload = {
       nombre: String(formData.get("nombre") ?? "").trim(),
       apellido: String(formData.get("apellido") ?? "").trim(),
       correo: String(formData.get("correo") ?? "").trim(),
-      area_id: Number(formData.get("area_id")) || null,
+      area_id: areaIdValue || null,
       jerarquia_id: Number(formData.get("jerarquia_id")) || null,
       activo: selectors.activeCheckbox?.checked ?? true,
       rol_id: Number(formData.get("rol_id")) || null
@@ -440,3 +512,4 @@ async function deleteUser(user) {
     console.error("Error inesperado al eliminar usuario", error);
   }
 }
+
