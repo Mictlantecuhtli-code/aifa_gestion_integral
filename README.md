@@ -12,5 +12,6 @@ La Service Role Key no se incluye en el repositorio. Para habilitar la creación
 - Definir el objeto global `window.__supabaseConfig` con la propiedad `serviceRoleKey`.
 - Guardar la clave en `localStorage` con el identificador `supabase.service_role_key`.
 - Asignar la clave a la variable global `window.__SUPABASE_SERVICE_ROLE_KEY`.
+- Utilizar el botón **Configurar llave** que aparece en el módulo de usuarios para guardar o borrar la clave directamente desde la interfaz.
 
-Si la clave no está disponible, el formulario mostrará un mensaje indicando que falta la configuración necesaria y detendrá el proceso de alta.
+Si la clave no está disponible, el panel mostrará un aviso en la parte superior del módulo de usuarios indicando que falta la configuración necesaria y detendrá el proceso de alta hasta que se proporcione.

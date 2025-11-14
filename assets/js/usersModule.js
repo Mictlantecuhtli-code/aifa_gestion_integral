@@ -1,4 +1,4 @@
-import { supabaseDb, supabaseAdminDb } from "./supabaseClient.js";
+import { supabaseDb, supabaseAdminDb, setSupabaseServiceRoleKey } from "./supabaseClient.js";
 
 function createInitialState() {
   return {
@@ -34,7 +34,10 @@ function resolveSelectors() {
     areaSelect: document.querySelector("#user-area"),
     jerarquiaSelect: document.querySelector("#user-rank"),
     roleSelect: document.querySelector("#user-role"),
-    activeCheckbox: document.querySelector("#user-active")
+    activeCheckbox: document.querySelector("#user-active"),
+    serviceRoleNotice: document.querySelector("#service-role-notice"),
+    serviceRoleConfigureButton: document.querySelector("#configure-service-role"),
+    serviceRoleStatus: document.querySelector("#service-role-status")
   };
 }
 
@@ -47,6 +50,7 @@ export async function initializeUsersModule() {
   }
 
   await Promise.all([loadCatalogs(), loadUsers()]);
+  updateServiceRoleNotice();
   registerEventListeners();
 }
 
@@ -315,6 +319,10 @@ function registerEventListeners() {
     renderUsers();
   });
 
+  selectors.serviceRoleConfigureButton?.addEventListener("click", () => {
+    promptForServiceRoleKey();
+  });
+
   selectors.userForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
 
@@ -374,6 +382,7 @@ function openDialog(title, user = null) {
   }
 
   selectors.userDialog?.showModal();
+  updateServiceRoleNotice();
 }
 
 function closeDialog() {
@@ -417,6 +426,7 @@ function resolveAuthProvisionErrorMessage(result) {
 async function provisionAuthUser({ nombre, apellido, correo }) {
   const adminClient = supabaseAdminDb.client;
   if (!adminClient) {
+    updateServiceRoleNotice();
     return { errorCode: "NO_SERVICE_ROLE_KEY" };
   }
 
@@ -495,6 +505,9 @@ async function createUser(payload) {
     if (!authProvision?.userId) {
       const message = resolveAuthProvisionErrorMessage(authProvision);
       setDialogHint(message, true);
+      if (authProvision?.errorCode === "NO_SERVICE_ROLE_KEY") {
+        updateServiceRoleNotice();
+      }
       return;
     }
 
@@ -669,5 +682,46 @@ async function deleteUser(user) {
   } catch (error) {
     console.error("Error inesperado al eliminar usuario", error);
   }
+}
+
+function updateServiceRoleNotice() {
+  const hasAdminAccess = supabaseAdminDb.hasAccess();
+  if (selectors.serviceRoleNotice) {
+    selectors.serviceRoleNotice.classList.toggle("is-hidden", hasAdminAccess);
+  }
+  if (selectors.serviceRoleStatus) {
+    selectors.serviceRoleStatus.textContent = hasAdminAccess
+      ? "La creación de usuarios nuevos está habilitada."
+      : "Para crear usuarios nuevos se requiere configurar la Service Role Key.";
+  }
+}
+
+function promptForServiceRoleKey() {
+  const hasAccess = supabaseAdminDb.hasAccess();
+  const placeholder = hasAccess ? "********" : "";
+  const userInput = window.prompt(
+    "Ingresa la Service Role Key de Supabase para permitir la creación de cuentas de autenticación.\n\nDeja el campo en blanco para borrar la configuración almacenada.",
+    placeholder
+  );
+
+  if (userInput === null) {
+    return;
+  }
+
+  const trimmed = userInput.trim();
+  if (!trimmed) {
+    setSupabaseServiceRoleKey("");
+    updateServiceRoleNotice();
+    window.alert("Se eliminó la Service Role Key configurada.");
+    return;
+  }
+
+  if (hasAccess && trimmed === placeholder) {
+    return;
+  }
+
+  setSupabaseServiceRoleKey(trimmed);
+  updateServiceRoleNotice();
+  window.alert("Service Role Key configurada correctamente. Puedes volver a crear usuarios.");
 }
 
