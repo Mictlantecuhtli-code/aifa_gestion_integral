@@ -158,13 +158,14 @@ export const modulosCursoModule = {
     const filtered = (this.state.modulos ?? []).filter((modulo) => {
       const nombre = (modulo.nombre ?? "").toLowerCase();
       const descripcion = (modulo.descripcion ?? "").toLowerCase();
+      const curso = (modulo.cursos?.nombre ?? this.getCursoNombre(modulo.curso_id) ?? "").toLowerCase();
       if (!query) return true;
-      return nombre.includes(query) || descripcion.includes(query);
+      return nombre.includes(query) || descripcion.includes(query) || curso.includes(query);
     });
 
     if (!filtered.length) {
       this.selectors.tableBody.innerHTML = `<tr><td colspan="4" class="table__empty">No hay módulos que coincidan con la búsqueda seleccionada.</td></tr>`;
-      if (this.selectors.summary) this.selectors.summary.textContent = "";
+      if (this.selectors.summary) this.selectors.summary.textContent = "0 módulo(s) listados";
       return;
     }
 
@@ -240,6 +241,7 @@ export const modulosCursoModule = {
   async createModulo(payload) {
     try {
       const insertPayload = { ...payload };
+      insertPayload.id = crypto.randomUUID();
       insertPayload.descripcion = insertPayload.descripcion || null;
       insertPayload.orden = Number.isFinite(insertPayload.orden) ? insertPayload.orden : 0;
       insertPayload.activo = Boolean(insertPayload.activo);
