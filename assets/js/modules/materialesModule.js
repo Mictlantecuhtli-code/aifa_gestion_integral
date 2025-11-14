@@ -32,6 +32,37 @@ function generateFileName(originalName) {
   return `${random}.${extension}`;
 }
 
+function translateSupabaseError(error, context) {
+  const message = typeof error?.message === "string" ? error.message : "";
+  if (/row-level security/i.test(message)) {
+    return `No tienes permisos para ${context}. Contacta al administrador del sistema.`;
+  }
+  return null;
+}
+
+function markFileInputError(input, message) {
+  if (!(input instanceof HTMLInputElement)) return;
+  input.setCustomValidity(message ?? "");
+  input.reportValidity();
+}
+
+function clearFileInputError(input) {
+  if (!(input instanceof HTMLInputElement)) return;
+  input.setCustomValidity("");
+}
+
+async function removeFileFromStorage(path) {
+  if (!path) return;
+  try {
+    const { error } = await supabaseDb.storage.from(STORAGE_BUCKET).remove([path]);
+    if (error) {
+      console.error("No se pudo eliminar el archivo temporal del almacenamiento", error);
+    }
+  } catch (removeError) {
+    console.error("Error inesperado al intentar eliminar el archivo temporal", removeError);
+  }
+}
+
 export const materialesModule = {
   state: {},
   selectors: {},
@@ -350,6 +381,8 @@ export const materialesModule = {
       this.updateFormFieldsForTipo(currentTipo);
     }
 
+    clearFileInputError(this.selectors.archivoInput);
+
     this.selectors.dialog.showModal();
   },
 
@@ -363,6 +396,7 @@ export const materialesModule = {
       if (this.selectors.tipoSelect) this.selectors.tipoSelect.value = this.selectors.tipoSelect.options?.[0]?.value ?? "";
       this.updateFormFieldsForTipo(this.selectors.tipoSelect?.value ?? "");
     }
+    clearFileInputError(this.selectors.archivoInput);
   },
 
   async createMaterial(payload) {
@@ -381,14 +415,16 @@ export const materialesModule = {
       const { error } = await supabaseDb.from("materiales").insert([insertPayload]);
       if (error) {
         console.error("Error al crear material", error);
-        this.setDialogHint("No se pudo crear el material. Revisa la consola para más detalles.", true);
+        const friendly = translateSupabaseError(error, "crear materiales");
+        this.setDialogHint(friendly ?? "No se pudo crear el material. Revisa la consola para más detalles.", true);
         return false;
       }
 
       return true;
     } catch (error) {
       console.error("Error inesperado al crear material", error);
-      this.setDialogHint("Ocurrió un error inesperado al crear el material.", true);
+      const friendly = translateSupabaseError(error, "crear materiales");
+      this.setDialogHint(friendly ?? "Ocurrió un error inesperado al crear el material.", true);
       return false;
     }
   },
@@ -405,14 +441,16 @@ export const materialesModule = {
       const { error } = await supabaseDb.from("materiales").update(updatePayload).eq("id", materialId);
       if (error) {
         console.error("Error al actualizar material", error);
-        this.setDialogHint("No se pudo actualizar el material.", true);
+        const friendly = translateSupabaseError(error, "actualizar materiales");
+        this.setDialogHint(friendly ?? "No se pudo actualizar el material.", true);
         return false;
       }
 
       return true;
     } catch (error) {
       console.error("Error inesperado al actualizar material", error);
-      this.setDialogHint("Ocurrió un error inesperado al actualizar el material.", true);
+      const friendly = translateSupabaseError(error, "actualizar materiales");
+      this.setDialogHint(friendly ?? "Ocurrió un error inesperado al actualizar el material.", true);
       return false;
     }
   },
@@ -422,7 +460,8 @@ export const materialesModule = {
       const { error } = await supabaseDb.from("materiales").delete().eq("id", material.id);
       if (error) {
         console.error("Error al eliminar material", error);
-        window.alert("No se pudo eliminar el material.");
+        const friendly = translateSupabaseError(error, "eliminar materiales");
+        window.alert(friendly ?? "No se pudo eliminar el material.");
         return;
       }
 
@@ -441,7 +480,8 @@ export const materialesModule = {
 
       if (error) {
         console.error("Error al cambiar estado del material", error);
-        window.alert("No se pudo cambiar el estado del material.");
+        const friendly = translateSupabaseError(error, "actualizar el estado de los materiales");
+        window.alert(friendly ?? "No se pudo cambiar el estado del material.");
         return;
       }
 
@@ -454,6 +494,7 @@ export const materialesModule = {
   async uploadFile(file) {
     if (!file) return { url: null, path: null };
 
+    clearFileInputError(this.selectors.archivoInput);
     const fileName = generateFileName(file.name);
     const filePath = `materiales/${fileName}`;
 
@@ -463,6 +504,11 @@ export const materialesModule = {
 
     if (uploadError) {
       console.error("Error al subir archivo", uploadError);
+      const friendly = translateSupabaseError(uploadError, "subir archivos de materiales");
+      if (friendly) {
+        this.setDialogHint(friendly, true);
+        markFileInputError(this.selectors.archivoInput, friendly);
+      }
       throw uploadError;
     }
 
@@ -472,6 +518,11 @@ export const materialesModule = {
 
     if (urlError) {
       console.error("Error al obtener URL pública del archivo", urlError);
+      const friendly = translateSupabaseError(urlError, "obtener la URL pública del material");
+      if (friendly) {
+        this.setDialogHint(friendly, true);
+        markFileInputError(this.selectors.archivoInput, friendly);
+      }
       throw urlError;
     }
 
@@ -596,6 +647,9 @@ export const materialesModule = {
       this.setDialogHint("");
       this.setDialogProcessing(true);
 
+      let uploadedFilePath = null;
+      let success = false;
+
       try {
         let urlArchivo = this.state.editingMaterial?.url_archivo ?? null;
 
@@ -604,14 +658,19 @@ export const materialesModule = {
             this.setDialogHint("Subiendo archivo…", false);
             const uploadResult = await this.uploadFile(data.file);
             urlArchivo = uploadResult.url;
+            uploadedFilePath = uploadResult.path ?? null;
             this.setDialogHint("");
+            clearFileInputError(this.selectors.archivoInput);
           } else if (!urlArchivo) {
-            this.setDialogHint("Selecciona un archivo para el material.", true);
+            const message = "Selecciona un archivo para el material.";
+            this.setDialogHint(message, true);
+            markFileInputError(this.selectors.archivoInput, message);
             this.setDialogProcessing(false);
             return;
           }
         } else {
           urlArchivo = null;
+          clearFileInputError(this.selectors.archivoInput);
         }
 
         const payload = {
@@ -625,11 +684,17 @@ export const materialesModule = {
           activo: data.activo
         };
 
-        let success = false;
         if (this.state.editingMaterial) {
           success = await this.updateMaterial(this.state.editingMaterial.id, payload);
         } else {
           success = await this.createMaterial(payload);
+        }
+
+        if (!success && requiresFile(data.tipo) && uploadedFilePath) {
+          const message = this.selectors.dialogHint?.textContent?.trim();
+          if (message) {
+            markFileInputError(this.selectors.archivoInput, message);
+          }
         }
 
         if (success) {
@@ -638,7 +703,19 @@ export const materialesModule = {
         }
       } catch (error) {
         console.error("Error al guardar material", error);
-        this.setDialogHint("Ocurrió un error al guardar el material.", true);
+        const friendly = translateSupabaseError(error, "guardar el material");
+        if (friendly) {
+          this.setDialogHint(friendly, true);
+          if (requiresFile(data.tipo)) {
+            markFileInputError(this.selectors.archivoInput, friendly);
+          }
+        } else {
+          this.setDialogHint("Ocurrió un error al guardar el material.", true);
+        }
+      }
+
+      if (!success && uploadedFilePath) {
+        await removeFileFromStorage(uploadedFilePath);
       }
 
       this.setDialogProcessing(false);
@@ -939,6 +1016,7 @@ export const materialesModule = {
       this.selectors.archivoInput.required = requires && !this.state.editingMaterial?.url_archivo;
       if (!requires) {
         this.selectors.archivoInput.value = "";
+        clearFileInputError(this.selectors.archivoInput);
       }
     }
 
