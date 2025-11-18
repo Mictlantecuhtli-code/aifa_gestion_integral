@@ -12,6 +12,8 @@ import { initializeEvaluacionesModule } from "./modules/evaluacionesModule.js";
 import { initializeConstanciasModule } from "./modules/constanciasModule.js";
 import { initializeReportesModule } from "./modules/reportesModule.js";
 
+const ALLOWED_ROLES = ["administrador", "maestro", "instructor", "alumno"];
+
 const selectors = {
   logoutButton: document.querySelector("#btn-logout"),
   navigationLinks: Array.from(document.querySelectorAll(".admin-menu__button")),
@@ -116,8 +118,8 @@ async function ensureAuthenticated() {
     return null;
   }
 
-  const isAdmin = (data ?? []).some((row) => (row.roles?.nombre ?? "").toLowerCase() === "administrador");
-  if (!isAdmin) {
+  const hasAccess = (data ?? []).some((row) => ALLOWED_ROLES.includes((row.roles?.nombre ?? "").toLowerCase()));
+  if (!hasAccess) {
     await supabaseDb.auth.signOut();
     redirectToLogin();
     return null;
