@@ -1,0 +1,1006 @@
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistema de Capacitación - Administración</title>
+  <link rel="stylesheet" href="assets/css/main.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script type="module" src="assets/js/admin.js" defer></script>
+</head>
+<body class="theme-light admin-shell">
+  <header class="topbar">
+    <div class="topbar__brand">
+      <img src="assets/AIFA_logo.png" alt="Logotipo AIFA" class="topbar__logo" />
+      <div class="topbar__titles">
+        <span class="brand">Sistema de Capacitación</span>
+        <span class="topbar__subtitle">Administración de usuarios</span>
+      </div>
+    </div>
+    <nav class="topbar__nav" aria-label="Sección de administración">
+      <span class="topbar__nav-label">Administración</span>
+    </nav>
+  </header>
+
+  <main class="admin-main">
+    <div class="admin-main__top">
+      <button id="btn-logout" class="btn btn--outline" type="button">Cerrar sesión</button>
+    </div>
+    <div class="admin-menu" role="group" aria-label="Paneles de administración">
+      <button
+        class="admin-menu__button admin-menu__button--active"
+        type="button"
+        data-module-target="usuarios"
+        aria-pressed="true"
+      >
+        <span class="admin-menu__label">Usuarios</span>
+      </button>
+      <button class="admin-menu__button" type="button" data-module-target="cursos" aria-pressed="false">
+        <span class="admin-menu__label">Cursos</span>
+      </button>
+      <button class="admin-menu__button" type="button" data-module-target="modulos-curso" aria-pressed="false">
+        <span class="admin-menu__label">Módulos del curso</span>
+      </button>
+      <button class="admin-menu__button" type="button" data-module-target="lecciones" aria-pressed="false">
+        <span class="admin-menu__label">Lecciones</span>
+      </button>
+      <button class="admin-menu__button" type="button" data-module-target="materiales" aria-pressed="false">
+        <span class="admin-menu__label">Materiales</span>
+      </button>
+      <button class="admin-menu__button" type="button" data-module-target="banco-preguntas" aria-pressed="false">
+        <span class="admin-menu__label">Banco de Preguntas</span>
+      </button>
+      <button class="admin-menu__button" type="button" data-module-target="evaluaciones" aria-pressed="false">
+        <span class="admin-menu__label">Evaluaciones</span>
+      </button>
+      <button class="admin-menu__button" type="button" data-module-target="roles" aria-pressed="false">
+        <span class="admin-menu__label">Roles</span>
+      </button>
+      <button class="admin-menu__button" type="button" data-module-target="permisos" aria-pressed="false">
+        <span class="admin-menu__label">Permisos</span>
+      </button>
+      <button class="admin-menu__button" type="button" data-module-target="asignaciones" aria-pressed="false">
+        <span class="admin-menu__label">Asignar permisos</span>
+      </button>
+    </div>
+    <div id="module-container" class="admin-module-container">
+      <section class="panel panel--elevated admin-module__loading">
+        <header class="panel__header">
+          <div class="panel__heading">
+            <h1 class="panel__title">Cargando módulo…</h1>
+            <p class="panel__subtitle">Por favor espere mientras se prepara la información.</p>
+          </div>
+        </header>
+      </section>
+    </div>
+  </main>
+
+  <template id="module-template-usuarios">
+    <div class="admin-module admin-module--usuarios">
+      <section class="panel panel--elevated">
+        <header class="panel__header">
+          <div class="panel__heading">
+            <h1 class="panel__title">Administración de usuarios</h1>
+            <p class="panel__subtitle">Gestione los usuarios del sistema, sus roles y permisos.</p>
+          </div>
+          <div class="panel__actions">
+            <button id="btn-new-user" class="btn btn--primary" type="button">Nuevo usuario</button>
+          </div>
+        </header>
+        <div class="panel__toolbar">
+          <div class="input-group">
+            <label class="sr-only" for="search-user">Buscar usuario</label>
+            <input id="search-user" type="search" placeholder="Buscar por nombre, correo, rol o puesto" />
+          </div>
+          <div class="input-group">
+            <label for="filter-status">Estado</label>
+            <select id="filter-status">
+              <option value="todos">Todos</option>
+              <option value="activos">Activos</option>
+              <option value="inactivos">Inactivos</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrapper" role="region" aria-live="polite">
+          <table class="table" aria-describedby="panel-summary">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Correo</th>
+                <th>Área</th>
+                <th>Jerarquía</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="users-table-body">
+              <tr>
+                <td colspan="6" class="table__empty">Cargando usuarios…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p id="panel-summary" class="panel__summary"></p>
+      </section>
+
+      <dialog id="user-dialog" class="dialog">
+        <form method="dialog" class="dialog__content" id="user-form">
+          <header class="dialog__header">
+            <h2 id="dialog-title">Nuevo usuario</h2>
+            <button type="button" class="btn btn--ghost" id="dialog-close" aria-label="Cerrar">×</button>
+          </header>
+          <section class="dialog__body">
+            <div class="form form--grid">
+              <div class="form__field">
+                <label for="user-name">Nombre</label>
+                <input id="user-name" name="nombre" required />
+              </div>
+              <div class="form__field">
+                <label for="user-lastname">Apellido</label>
+                <input id="user-lastname" name="apellido" required />
+              </div>
+              <div class="form__field">
+                <label for="user-email">Correo institucional</label>
+                <input id="user-email" name="correo" type="email" required />
+              </div>
+              <div class="form__field">
+                <label for="user-password">Contraseña temporal</label>
+                <input id="user-password" name="password" type="password" minlength="8" placeholder="Ingresa una contraseña temporal" />
+                <p class="form__hint">Solo se usa al crear la cuenta en Supabase Auth.</p>
+              </div>
+              <div class="form__field">
+                <label for="user-area">Área</label>
+                <select id="user-area" name="area_id" required></select>
+              </div>
+              <div class="form__field">
+                <label for="user-rank">Jerarquía</label>
+                <select id="user-rank" name="jerarquia_id" required></select>
+              </div>
+              <div class="form__field form__field--inline">
+                <input type="checkbox" id="user-active" name="activo" checked />
+                <label for="user-active">Usuario activo</label>
+              </div>
+              <div class="form__field">
+                <label for="user-role">Rol</label>
+                <select id="user-role" name="rol_id"></select>
+              </div>
+            </div>
+            <p class="form__hint" id="dialog-hint" role="status" aria-live="polite"></p>
+          </section>
+          <footer class="dialog__footer">
+            <button type="button" class="btn btn--ghost" id="dialog-cancel">Cancelar</button>
+            <button type="submit" class="btn btn--primary">Guardar</button>
+          </footer>
+        </form>
+      </dialog>
+    </div>
+  </template>
+
+  <template id="module-template-cursos">
+    <div class="admin-module admin-module--cursos">
+      <section class="panel panel--elevated">
+        <header class="panel__header">
+          <div class="panel__heading">
+            <h1 class="panel__title">Gestión de cursos</h1>
+            <p class="panel__subtitle">Cree y administre los cursos disponibles en la plataforma.</p>
+          </div>
+          <div class="panel__actions">
+            <button id="btn-new-course" class="btn btn--primary" type="button">Nuevo curso</button>
+          </div>
+        </header>
+        <div class="panel__toolbar">
+          <div class="input-group">
+            <label class="sr-only" for="search-course">Buscar curso</label>
+            <input id="search-course" type="search" placeholder="Buscar por nombre o descripción" />
+          </div>
+          <div class="input-group">
+            <label for="filter-course-status">Estado</label>
+            <select id="filter-course-status">
+              <option value="todos">Todos</option>
+              <option value="activos">Activos</option>
+              <option value="inactivos">Inactivos</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrapper" role="region" aria-live="polite">
+          <table class="table" aria-describedby="courses-summary">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Estado</th>
+                <th>Creado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="courses-table-body">
+              <tr>
+                <td colspan="4" class="table__empty">Cargando cursos…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p id="courses-summary" class="panel__summary"></p>
+      </section>
+
+      <dialog id="course-dialog" class="dialog">
+        <form method="dialog" class="dialog__content" id="course-form">
+          <header class="dialog__header">
+            <h2 id="course-dialog-title">Nuevo curso</h2>
+            <button type="button" class="btn btn--ghost" id="course-dialog-close" aria-label="Cerrar">×</button>
+          </header>
+          <section class="dialog__body">
+            <div class="form form--grid">
+              <div class="form__field">
+                <label for="course-name">Nombre del curso</label>
+                <input id="course-name" name="nombre" required />
+              </div>
+              <div class="form__field">
+                <label for="course-description">Descripción</label>
+                <textarea id="course-description" name="descripcion" rows="4"></textarea>
+              </div>
+              <div class="form__field">
+                <label for="course-cover">Imagen de portada (URL)</label>
+                <input id="course-cover" name="imagen_portada" type="url" placeholder="https://" />
+              </div>
+              <div class="form__field form__field--inline">
+                <input type="checkbox" id="course-active" name="activo" checked />
+                <label for="course-active">Curso activo</label>
+              </div>
+            </div>
+            <p class="form__hint" id="course-dialog-hint" role="status" aria-live="polite"></p>
+          </section>
+          <footer class="dialog__footer">
+            <button type="button" class="btn btn--ghost" id="course-dialog-cancel">Cancelar</button>
+            <button type="submit" class="btn btn--primary">Guardar</button>
+          </footer>
+        </form>
+      </dialog>
+    </div>
+  </template>
+
+  <template id="module-template-modulos-curso">
+    <div class="admin-module admin-module--modulos-curso">
+      <section class="panel panel--elevated">
+        <header class="panel__header">
+          <div class="panel__heading">
+            <h1 class="panel__title">Gestión de módulos de curso</h1>
+            <p class="panel__subtitle">Administre las secciones que componen cada curso.</p>
+          </div>
+          <div class="panel__actions">
+            <button id="btn-new-modulo" class="btn btn--primary" type="button">Nuevo módulo</button>
+          </div>
+        </header>
+        <div class="panel__toolbar">
+          <div class="input-group">
+            <label class="sr-only" for="search-modulo">Buscar módulo</label>
+            <input id="search-modulo" type="search" placeholder="Buscar por nombre o descripción" />
+          </div>
+          <div class="input-group">
+            <label for="filter-modulo-curso">Curso</label>
+            <select id="filter-modulo-curso">
+              <option value="todos">Todos los cursos</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrapper" role="region" aria-live="polite">
+          <table class="table" aria-describedby="modulos-curso-summary">
+            <thead>
+              <tr>
+                <th>Módulo</th>
+                <th>Orden</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="modulos-curso-table-body">
+              <tr>
+                <td colspan="4" class="table__empty">Cargando módulos…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p id="modulos-curso-summary" class="panel__summary"></p>
+      </section>
+
+      <dialog id="modulo-curso-dialog" class="dialog">
+        <form method="dialog" class="dialog__content" id="modulo-curso-form">
+          <header class="dialog__header">
+            <h2 id="modulo-curso-dialog-title">Nuevo módulo</h2>
+            <button type="button" class="btn btn--ghost" id="modulo-curso-dialog-close" aria-label="Cerrar">×</button>
+          </header>
+          <section class="dialog__body">
+            <div class="form form--grid">
+              <div class="form__field">
+                <label for="modulo-curso-curso">Curso</label>
+                <select id="modulo-curso-curso" name="curso_id" required></select>
+              </div>
+              <div class="form__field">
+                <label for="modulo-curso-nombre">Nombre del módulo</label>
+                <input id="modulo-curso-nombre" name="nombre" required />
+              </div>
+              <div class="form__field">
+                <label for="modulo-curso-descripcion">Descripción</label>
+                <textarea id="modulo-curso-descripcion" name="descripcion" rows="4"></textarea>
+              </div>
+              <div class="form__field">
+                <label for="modulo-curso-orden">Orden</label>
+                <input id="modulo-curso-orden" name="orden" type="number" min="0" required />
+              </div>
+              <div class="form__field form__field--inline">
+                <input type="checkbox" id="modulo-curso-activo" name="activo" checked />
+                <label for="modulo-curso-activo">Módulo activo</label>
+              </div>
+            </div>
+            <p class="form__hint" id="modulo-curso-dialog-hint" role="status" aria-live="polite"></p>
+          </section>
+          <footer class="dialog__footer">
+            <button type="button" class="btn btn--ghost" id="modulo-curso-dialog-cancel">Cancelar</button>
+            <button type="submit" class="btn btn--primary">Guardar</button>
+          </footer>
+        </form>
+      </dialog>
+    </div>
+  </template>
+
+  <template id="module-template-lecciones">
+    <div class="admin-module admin-module--lecciones">
+      <section class="panel panel--elevated">
+        <header class="panel__header">
+          <div class="panel__heading">
+            <h1 class="panel__title">Gestión de lecciones</h1>
+            <p class="panel__subtitle">Administre el contenido de cada módulo del curso.</p>
+          </div>
+          <div class="panel__actions">
+            <button id="btn-new-leccion" class="btn btn--primary" type="button">Nueva lección</button>
+          </div>
+        </header>
+        <div class="panel__toolbar">
+          <div class="input-group">
+            <label class="sr-only" for="search-leccion">Buscar lección</label>
+            <input id="search-leccion" type="search" placeholder="Buscar por nombre o descripción" />
+          </div>
+          <div class="input-group">
+            <label for="filter-leccion-curso">Curso</label>
+            <select id="filter-leccion-curso">
+              <option value="todos">Todos los cursos</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label for="filter-leccion-modulo">Módulo</label>
+            <select id="filter-leccion-modulo">
+              <option value="todos">Todos los módulos</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrapper" role="region" aria-live="polite">
+          <table class="table" aria-describedby="lecciones-summary">
+            <thead>
+              <tr>
+                <th>Lección</th>
+                <th>Orden</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="lecciones-table-body">
+              <tr>
+                <td colspan="4" class="table__empty">Cargando lecciones…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p id="lecciones-summary" class="panel__summary"></p>
+      </section>
+
+      <dialog id="leccion-dialog" class="dialog">
+        <form method="dialog" class="dialog__content" id="leccion-form">
+          <header class="dialog__header">
+            <h2 id="leccion-dialog-title">Nueva lección</h2>
+            <button type="button" class="btn btn--ghost" id="leccion-dialog-close" aria-label="Cerrar">×</button>
+          </header>
+          <section class="dialog__body">
+            <div class="form form--grid">
+              <div class="form__field">
+                <label for="leccion-modulo">Módulo</label>
+                <select id="leccion-modulo" name="modulo_id" required></select>
+              </div>
+              <div class="form__field">
+                <label for="leccion-nombre">Nombre de la lección</label>
+                <input id="leccion-nombre" name="nombre" required />
+              </div>
+              <div class="form__field">
+                <label for="leccion-descripcion">Descripción</label>
+                <textarea id="leccion-descripcion" name="descripcion" rows="3"></textarea>
+              </div>
+              <div class="form__field">
+                <label for="leccion-contenido">Contenido HTML</label>
+                <textarea id="leccion-contenido" name="contenido_html" rows="6"></textarea>
+              </div>
+              <div class="form__field">
+                <label for="leccion-orden">Orden</label>
+                <input id="leccion-orden" name="orden" type="number" min="0" required />
+              </div>
+              <div class="form__field form__field--inline">
+                <input type="checkbox" id="leccion-activo" name="activo" checked />
+                <label for="leccion-activo">Lección activa</label>
+              </div>
+            </div>
+            <p class="form__hint" id="leccion-dialog-hint" role="status" aria-live="polite"></p>
+          </section>
+          <footer class="dialog__footer">
+            <button type="button" class="btn btn--ghost" id="leccion-dialog-cancel">Cancelar</button>
+            <button type="submit" class="btn btn--primary">Guardar</button>
+          </footer>
+        </form>
+      </dialog>
+    </div>
+  </template>
+
+  <template id="module-template-materiales">
+    <div class="admin-module admin-module--materiales">
+      <section class="panel panel--elevated">
+        <header class="panel__header">
+          <div class="panel__heading">
+            <h1 class="panel__title">Gestión de materiales</h1>
+            <p class="panel__subtitle">Administre los recursos asociados a las lecciones.</p>
+          </div>
+          <div class="panel__actions">
+            <button id="btn-new-material" class="btn btn--primary" type="button">Nuevo material</button>
+          </div>
+        </header>
+        <div class="panel__toolbar">
+          <div class="input-group">
+            <label class="sr-only" for="search-material">Buscar material</label>
+            <input id="search-material" type="search" placeholder="Buscar por título o descripción" />
+          </div>
+          <div class="input-group">
+            <label for="filter-material-curso">Curso</label>
+            <select id="filter-material-curso">
+              <option value="todos">Todos los cursos</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label for="filter-material-modulo">Módulo</label>
+            <select id="filter-material-modulo">
+              <option value="todos">Todos los módulos</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label for="filter-material-leccion">Lección</label>
+            <select id="filter-material-leccion">
+              <option value="todos">Todas las lecciones</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrapper" role="region" aria-live="polite">
+          <table class="table" aria-describedby="materiales-summary">
+            <thead>
+              <tr>
+                <th>Título</th>
+                <th>Tipo</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="materiales-table-body">
+              <tr>
+                <td colspan="4" class="table__empty">Cargando materiales…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p id="materiales-summary" class="panel__summary"></p>
+      </section>
+
+      <dialog id="material-dialog" class="dialog">
+        <form method="dialog" class="dialog__content" id="material-form">
+          <header class="dialog__header">
+            <h2 id="material-dialog-title">Nuevo material</h2>
+            <button type="button" class="btn btn--ghost" id="material-dialog-close" aria-label="Cerrar">×</button>
+          </header>
+          <section class="dialog__body">
+            <div class="form form--grid">
+              <div class="form__field">
+                <label for="material-curso">Curso</label>
+                <select id="material-curso" name="curso_id" required></select>
+              </div>
+              <div class="form__field">
+                <label for="material-modulo">Módulo</label>
+                <select id="material-modulo" name="modulo_id" required></select>
+              </div>
+              <div class="form__field">
+                <label for="material-leccion">Lección</label>
+                <select id="material-leccion" name="leccion_id" required></select>
+              </div>
+              <div class="form__field">
+                <label for="material-tipo">Tipo de material</label>
+                <select id="material-tipo" name="tipo" required>
+                  <option value="pdf">PDF</option>
+                  <option value="video">Video</option>
+                  <option value="imagen">Imagen</option>
+                  <option value="archivo">Archivo</option>
+                  <option value="enlace">Enlace</option>
+                </select>
+              </div>
+              <div class="form__field">
+                <label for="material-titulo">Título</label>
+                <input id="material-titulo" name="titulo" required />
+              </div>
+              <div class="form__field">
+                <label for="material-descripcion">Descripción</label>
+                <textarea id="material-descripcion" name="descripcion" rows="3"></textarea>
+              </div>
+              <div class="form__field">
+                <label for="material-archivo">Archivo</label>
+                <input id="material-archivo" name="archivo" type="file" />
+              </div>
+              <div class="form__field">
+                <label for="material-enlace">URL del enlace</label>
+                <input id="material-enlace" name="url_enlace" type="url" />
+              </div>
+              <div class="form__field">
+                <label for="material-orden">Orden</label>
+                <input id="material-orden" name="orden" type="number" min="0" required />
+              </div>
+              <div class="form__field form__field--inline">
+                <input type="checkbox" id="material-activo" name="activo" checked />
+                <label for="material-activo">Material activo</label>
+              </div>
+            </div>
+            <p class="form__hint" id="material-dialog-hint" role="status" aria-live="polite"></p>
+          </section>
+          <footer class="dialog__footer">
+            <button type="button" class="btn btn--ghost" id="material-dialog-cancel">Cancelar</button>
+            <button type="submit" class="btn btn--primary">Guardar</button>
+          </footer>
+        </form>
+      </dialog>
+    </div>
+  </template>
+
+  <template id="module-template-banco-preguntas">
+    <div class="admin-module admin-module--banco-preguntas">
+      <section class="panel panel--elevated">
+        <header class="panel__header">
+          <div class="panel__heading">
+            <h1 class="panel__title">Banco de preguntas</h1>
+            <p class="panel__subtitle">Gestione las preguntas disponibles por lección.</p>
+          </div>
+          <div class="panel__actions">
+            <button id="btn-new-pregunta" class="btn btn--primary" type="button">Nueva pregunta</button>
+          </div>
+        </header>
+        <div class="panel__toolbar">
+          <div class="input-group">
+            <label for="filter-bp-curso">Curso</label>
+            <select id="filter-bp-curso"></select>
+          </div>
+          <div class="input-group">
+            <label for="filter-bp-modulo">Módulo</label>
+            <select id="filter-bp-modulo"></select>
+          </div>
+          <div class="input-group">
+            <label for="filter-bp-leccion">Lección</label>
+            <select id="filter-bp-leccion"></select>
+          </div>
+          <div class="input-group input-group--grow">
+            <label class="sr-only" for="search-preguntas">Buscar pregunta</label>
+            <input id="search-preguntas" type="search" placeholder="Buscar por enunciado" />
+          </div>
+        </div>
+        <div class="table-wrapper" role="region" aria-live="polite">
+          <table class="table" aria-describedby="banco-preguntas-summary">
+            <thead>
+              <tr>
+                <th>Pregunta</th>
+                <th>Tipo</th>
+                <th>Dificultad</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="banco-preguntas-table-body">
+              <tr>
+                <td colspan="5" class="table__empty">Cargando preguntas…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p id="banco-preguntas-summary" class="panel__summary"></p>
+      </section>
+
+      <dialog id="banco-pregunta-dialog" class="dialog">
+        <form method="dialog" class="dialog__content" id="banco-pregunta-form">
+          <header class="dialog__header">
+            <h2 id="banco-pregunta-dialog-title">Nueva pregunta</h2>
+            <button type="button" class="btn btn--ghost" id="banco-pregunta-dialog-close" aria-label="Cerrar">×</button>
+          </header>
+          <section class="dialog__body">
+            <div class="form form--grid">
+              <div class="form__field">
+                <label for="banco-pregunta-curso">Curso</label>
+                <select id="banco-pregunta-curso" required></select>
+              </div>
+              <div class="form__field">
+                <label for="banco-pregunta-modulo">Módulo</label>
+                <select id="banco-pregunta-modulo" required></select>
+              </div>
+              <div class="form__field">
+                <label for="banco-pregunta-leccion">Lección</label>
+                <select id="banco-pregunta-leccion" name="leccion_id" required></select>
+              </div>
+              <div class="form__field form__field--full">
+                <label for="banco-pregunta-enunciado">Enunciado</label>
+                <textarea id="banco-pregunta-enunciado" name="enunciado" rows="3" required></textarea>
+              </div>
+              <div class="form__field">
+                <label for="banco-pregunta-tipo">Tipo</label>
+                <select id="banco-pregunta-tipo" name="tipo" required>
+                  <option value="">Selecciona un tipo</option>
+                  <option value="opcion_multiple">Opción múltiple</option>
+                  <option value="vf">Verdadero / Falso</option>
+                  <option value="abierta">Respuesta abierta</option>
+                </select>
+              </div>
+              <div class="form__field form__field--full" data-field="opciones">
+                <label for="banco-pregunta-opciones">Opciones (JSON)</label>
+                <textarea id="banco-pregunta-opciones" name="opciones" rows="3" placeholder='["Opción A","Opción B"]'></textarea>
+              </div>
+              <div class="form__field form__field--full" data-field="respuesta">
+                <label for="banco-pregunta-respuesta">Respuesta correcta (JSON)</label>
+                <textarea id="banco-pregunta-respuesta" name="respuesta_correcta" rows="3" placeholder='{"respuesta":"Opción A"}'></textarea>
+              </div>
+              <div class="form__field">
+                <label for="banco-pregunta-dificultad">Dificultad</label>
+                <select id="banco-pregunta-dificultad" name="dificultad" required>
+                  <option value="1">1 - Fácil</option>
+                  <option value="2">2 - Media</option>
+                  <option value="3">3 - Difícil</option>
+                </select>
+              </div>
+              <div class="form__field form__field--inline">
+                <input type="checkbox" id="banco-pregunta-activo" name="activo" checked />
+                <label for="banco-pregunta-activo">Pregunta activa</label>
+              </div>
+            </div>
+            <p class="form__hint" id="banco-pregunta-dialog-hint" role="status" aria-live="polite"></p>
+          </section>
+          <footer class="dialog__footer">
+            <button type="button" class="btn btn--ghost" id="banco-pregunta-dialog-cancel">Cancelar</button>
+            <button type="submit" class="btn btn--primary">Guardar</button>
+          </footer>
+        </form>
+      </dialog>
+    </div>
+  </template>
+
+  <template id="module-template-evaluaciones">
+    <div class="admin-module admin-module--evaluaciones">
+      <section class="panel panel--elevated">
+        <header class="panel__header">
+          <div class="panel__heading">
+            <h1 class="panel__title">Evaluaciones</h1>
+            <p class="panel__subtitle">Configure evaluaciones y genere versiones automáticas.</p>
+          </div>
+          <div class="panel__actions">
+            <button id="btn-new-evaluacion" class="btn btn--primary" type="button">Nueva evaluación</button>
+          </div>
+        </header>
+        <div class="panel__toolbar">
+          <div class="input-group">
+            <label for="filter-evaluacion-curso">Curso</label>
+            <select id="filter-evaluacion-curso"></select>
+          </div>
+          <div class="input-group">
+            <label for="filter-evaluacion-modulo">Módulo</label>
+            <select id="filter-evaluacion-modulo"></select>
+          </div>
+          <div class="input-group">
+            <label for="filter-evaluacion-leccion">Lección</label>
+            <select id="filter-evaluacion-leccion"></select>
+          </div>
+          <div class="input-group input-group--grow">
+            <label class="sr-only" for="search-evaluacion">Buscar evaluación</label>
+            <input id="search-evaluacion" type="search" placeholder="Buscar por título o descripción" />
+          </div>
+        </div>
+        <div class="table-wrapper" role="region" aria-live="polite">
+          <table class="table" aria-describedby="evaluaciones-summary">
+            <thead>
+              <tr>
+                <th>Evaluación</th>
+                <th>Configuración</th>
+                <th>Banco</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="evaluaciones-table-body">
+              <tr>
+                <td colspan="5" class="table__empty">Cargando evaluaciones…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p id="evaluaciones-summary" class="panel__summary"></p>
+      </section>
+
+      <section class="panel panel--elevated">
+        <header class="panel__header">
+          <div class="panel__heading">
+            <h2 class="panel__title">Versiones generadas</h2>
+            <p class="panel__subtitle">Consulta las versiones disponibles para la evaluación seleccionada.</p>
+          </div>
+        </header>
+        <div class="panel__body" id="evaluaciones-versiones-panel">
+          <p class="panel__empty">Selecciona una evaluación para ver sus versiones.</p>
+        </div>
+      </section>
+
+      <dialog id="evaluacion-dialog" class="dialog">
+        <form method="dialog" class="dialog__content" id="evaluacion-form">
+          <header class="dialog__header">
+            <h2 id="evaluacion-dialog-title">Nueva evaluación</h2>
+            <button type="button" class="btn btn--ghost" id="evaluacion-dialog-close" aria-label="Cerrar">×</button>
+          </header>
+          <section class="dialog__body">
+            <div class="form form--grid">
+              <div class="form__field">
+                <label for="evaluacion-curso">Curso</label>
+                <select id="evaluacion-curso" required></select>
+              </div>
+              <div class="form__field">
+                <label for="evaluacion-modulo">Módulo</label>
+                <select id="evaluacion-modulo" required></select>
+              </div>
+              <div class="form__field">
+                <label for="evaluacion-leccion">Lección</label>
+                <select id="evaluacion-leccion" name="leccion_id" required></select>
+              </div>
+              <div class="form__field form__field--full">
+                <label for="evaluacion-titulo">Título</label>
+                <input id="evaluacion-titulo" name="titulo" required />
+              </div>
+              <div class="form__field form__field--full">
+                <label for="evaluacion-descripcion">Descripción</label>
+                <textarea id="evaluacion-descripcion" name="descripcion" rows="2"></textarea>
+              </div>
+              <div class="form__field form__field--full">
+                <label for="evaluacion-instrucciones">Instrucciones</label>
+                <textarea id="evaluacion-instrucciones" name="instrucciones" rows="3"></textarea>
+              </div>
+              <div class="form__field">
+                <label for="evaluacion-preguntas">Preguntas por examen</label>
+                <input id="evaluacion-preguntas" name="preguntas_por_examen" type="number" min="1" required />
+              </div>
+              <div class="form__field">
+                <label for="evaluacion-versiones">Versiones</label>
+                <input id="evaluacion-versiones" name="versiones" type="number" min="1" required />
+              </div>
+              <div class="form__field">
+                <label for="evaluacion-intentos">Intentos máximos</label>
+                <input id="evaluacion-intentos" name="intentos_max" type="number" min="1" required />
+              </div>
+              <div class="form__field">
+                <label for="evaluacion-tiempo">Tiempo límite (minutos)</label>
+                <input id="evaluacion-tiempo" name="tiempo_limite" type="number" min="0" />
+              </div>
+              <div class="form__field form__field--inline">
+                <input type="checkbox" id="evaluacion-activo" name="activo" checked />
+                <label for="evaluacion-activo">Evaluación activa</label>
+              </div>
+            </div>
+            <p class="form__hint" id="evaluacion-dialog-hint" role="status" aria-live="polite"></p>
+          </section>
+          <footer class="dialog__footer">
+            <button type="button" class="btn btn--ghost" id="evaluacion-dialog-cancel">Cancelar</button>
+            <button type="submit" class="btn btn--primary">Guardar</button>
+          </footer>
+        </form>
+      </dialog>
+    </div>
+  </template>
+
+  <template id="module-template-roles">
+    <div class="admin-module admin-module--roles">
+      <section class="panel panel--elevated">
+        <header class="panel__header">
+          <div class="panel__heading">
+            <h1 class="panel__title">Gestión de roles</h1>
+            <p class="panel__subtitle">Cree y administre los roles disponibles en la plataforma.</p>
+          </div>
+          <div class="panel__actions">
+            <button id="btn-new-role" class="btn btn--primary" type="button">Nuevo rol</button>
+          </div>
+        </header>
+        <div class="panel__toolbar">
+          <div class="input-group">
+            <label class="sr-only" for="search-role">Buscar rol</label>
+            <input id="search-role" type="search" placeholder="Buscar por nombre o descripción" />
+          </div>
+          <div class="input-group">
+            <label for="filter-role-status">Estado</label>
+            <select id="filter-role-status">
+              <option value="todos">Todos</option>
+              <option value="activos">Activos</option>
+              <option value="inactivos">Inactivos</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrapper" role="region" aria-live="polite">
+          <table class="table" aria-describedby="roles-summary">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Descripción</th>
+                <th>Estado</th>
+                <th>Creado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="roles-table-body">
+              <tr>
+                <td colspan="5" class="table__empty">Cargando roles…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p id="roles-summary" class="panel__summary"></p>
+      </section>
+
+      <dialog id="role-dialog" class="dialog">
+        <form method="dialog" class="dialog__content" id="role-form">
+          <header class="dialog__header">
+            <h2 id="role-dialog-title">Nuevo rol</h2>
+            <button type="button" class="btn btn--ghost" id="role-dialog-close" aria-label="Cerrar">×</button>
+          </header>
+          <section class="dialog__body">
+            <div class="form form--grid">
+              <div class="form__field">
+                <label for="role-name">Nombre</label>
+                <input id="role-name" name="nombre" required />
+              </div>
+              <div class="form__field">
+                <label for="role-description">Descripción</label>
+                <textarea id="role-description" name="descripcion" rows="3"></textarea>
+              </div>
+              <div class="form__field form__field--inline">
+                <input type="checkbox" id="role-active" name="activo" checked />
+                <label for="role-active">Rol activo</label>
+              </div>
+            </div>
+            <p class="form__hint" id="role-dialog-hint" role="status" aria-live="polite"></p>
+          </section>
+          <footer class="dialog__footer">
+            <button type="button" class="btn btn--ghost" id="role-dialog-cancel">Cancelar</button>
+            <button type="submit" class="btn btn--primary">Guardar</button>
+          </footer>
+        </form>
+      </dialog>
+    </div>
+  </template>
+
+  <template id="module-template-permisos">
+    <div class="admin-module admin-module--permisos">
+      <section class="panel panel--elevated">
+        <header class="panel__header">
+          <div class="panel__heading">
+            <h1 class="panel__title">Gestión de permisos</h1>
+            <p class="panel__subtitle">Defina y administre los permisos del sistema.</p>
+          </div>
+          <div class="panel__actions">
+            <button id="btn-new-permission" class="btn btn--primary" type="button">Nuevo permiso</button>
+          </div>
+        </header>
+        <div class="panel__toolbar">
+          <div class="input-group">
+            <label class="sr-only" for="search-permission">Buscar permiso</label>
+            <input id="search-permission" type="search" placeholder="Buscar por código o descripción" />
+          </div>
+        </div>
+        <div class="table-wrapper" role="region" aria-live="polite">
+          <table class="table" aria-describedby="permissions-summary">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Descripción</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="permissions-table-body">
+              <tr>
+                <td colspan="3" class="table__empty">Cargando permisos…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p id="permissions-summary" class="panel__summary"></p>
+      </section>
+
+      <dialog id="permission-dialog" class="dialog">
+        <form method="dialog" class="dialog__content" id="permission-form">
+          <header class="dialog__header">
+            <h2 id="permission-dialog-title">Nuevo permiso</h2>
+            <button type="button" class="btn btn--ghost" id="permission-dialog-close" aria-label="Cerrar">×</button>
+          </header>
+          <section class="dialog__body">
+            <div class="form form--grid">
+              <div class="form__field">
+                <label for="permission-code">Código</label>
+                <input id="permission-code" name="codigo" required />
+              </div>
+              <div class="form__field">
+                <label for="permission-description">Descripción</label>
+                <textarea id="permission-description" name="descripcion" rows="3" required></textarea>
+              </div>
+            </div>
+            <p class="form__hint" id="permission-dialog-hint" role="status" aria-live="polite"></p>
+          </section>
+          <footer class="dialog__footer">
+            <button type="button" class="btn btn--ghost" id="permission-dialog-cancel">Cancelar</button>
+            <button type="submit" class="btn btn--primary">Guardar</button>
+          </footer>
+        </form>
+      </dialog>
+    </div>
+  </template>
+
+  <template id="module-template-asignaciones">
+    <div class="admin-module admin-module--asignaciones">
+      <section class="panel panel--elevated">
+        <header class="panel__header">
+          <div class="panel__heading">
+            <h1 class="panel__title">Asignar permisos a roles</h1>
+            <p class="panel__subtitle">Seleccione un rol y gestione los permisos disponibles.</p>
+          </div>
+          <div class="panel__actions">
+            <button id="btn-save-role-permissions" class="btn btn--primary" type="button">Guardar cambios</button>
+          </div>
+        </header>
+        <div class="panel__toolbar">
+          <div class="input-group">
+            <label for="select-role">Rol</label>
+            <select id="select-role">
+              <option value="" disabled selected>Seleccione un rol</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label class="sr-only" for="search-permission-role">Buscar permiso</label>
+            <input id="search-permission-role" type="search" placeholder="Buscar permiso por código o descripción" />
+          </div>
+        </div>
+        <div class="table-wrapper" role="region" aria-live="polite">
+          <table class="table" aria-describedby="role-permissions-summary">
+            <thead>
+              <tr>
+                <th>Permiso</th>
+                <th>Descripción</th>
+                <th>Asignado</th>
+              </tr>
+            </thead>
+            <tbody id="role-permissions-table-body">
+              <tr>
+                <td colspan="3" class="table__empty">Seleccione un rol para ver los permisos.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p id="role-permissions-summary" class="panel__summary"></p>
+      </section>
+
+      <dialog id="confirm-dialog" class="dialog">
+        <form method="dialog" class="dialog__content" id="confirm-form">
+          <header class="dialog__header">
+            <h2>Confirmar cambios</h2>
+          </header>
+          <section class="dialog__body">
+            <p id="confirm-message">¿Desea guardar los cambios de permisos?</p>
+          </section>
+          <footer class="dialog__footer">
+            <button type="button" class="btn btn--ghost" id="confirm-cancel">Cancelar</button>
+            <button type="submit" class="btn btn--primary">Confirmar</button>
+          </footer>
+        </form>
+      </dialog>
+    </div>
+  </template>
+</body>
+</html>
