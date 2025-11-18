@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Validación de constancias - AIFA</title>
+  <link rel="stylesheet" href="assets/css/main.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script type="module">
+    import { supabaseDb } from "./assets/js/supabaseClient.js";
+
+    const resultSection = document.getElementById("resultado-validacion");
+    const statusLabel = document.getElementById("estado-validacion");
+    const dataList = document.getElementById("detalle-validacion");
+    const hint = document.getElementById("validacion-hint");
+    const form = document.getElementById("validacion-form");
+    const folioInput = document.getElementById("folio-input");
+
+    function setStatus(message, variant = "info") {
+      statusLabel.textContent = message;
+      statusLabel.className = "badge";
+      statusLabel.classList.add(variant === "success" ? "badge--success" : variant === "error" ? "badge--danger" : "badge--info");
+    }
+
+    function renderDetalle(constancia) {
+      dataList.innerHTML = "";
+      if (!constancia) return;
+      const entries = [
+        ["Alumno", `${constancia.usuarios?.nombre ?? ""} ${constancia.usuarios?.apellido ?? ""}`.trim() || "N/D"],
+        ["Curso", constancia.cursos?.nombre ?? "N/D"],
+        ["Fecha de emisión", constancia.fecha_emision ? new Date(constancia.fecha_emision).toLocaleString("es-MX") : "N/D"],
+        ["Calificación", constancia.calificacion_final != null ? `${Number(constancia.calificacion_final).toFixed(2)} pts` : "N/D"],
+        ["Folio", constancia.folio],
+        ["Descarga", constancia.url_pdf ? `<a href="${constancia.url_pdf}" target="_blank" rel="noreferrer">Abrir PDF</a>` : "Pendiente"]
+      ];
+
+      entries.forEach(([label, value]) => {
+        const item = document.createElement("li");
+        item.innerHTML = `<strong>${label}:</strong> ${value}`;
+        dataList.append(item);
+      });
+    }
+
+    async function validarFolio(folio) {
+      hint.textContent = "Validando folio…";
+      setStatus("En revisión", "info");
+      renderDetalle(null);
+
+      const { data, error } = await supabaseDb
+        .from("constancias")
+        .select(
+          `folio,fecha_emision,calificacion_final,url_pdf,url_validacion,
+           usuarios:usuario_id(nombre,apellido),cursos:curso_id(nombre)`
+        )
+        .eq("folio", folio)
+        .maybeSingle();
+
+      if (error || !data) {
+        setStatus("Constancia no encontrada", "error");
+        hint.textContent = "Verifica que el folio esté escrito correctamente.";
+        return;
+      }
+
+      setStatus("Constancia válida", "success");
+      hint.textContent = "Puedes descargar el PDF o verificar los datos mostrados.";
+      renderDetalle(data);
+    }
+
+    form?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const folio = folioInput.value.trim();
+      if (!folio) return;
+      await validarFolio(folio);
+    });
+
+    const urlFolio = new URLSearchParams(window.location.search).get("folio");
+    if (urlFolio) {
+      folioInput.value = urlFolio;
+      validarFolio(urlFolio);
+    }
+  </script>
+</head>
+<body class="theme-light admin-shell">
+  <header class="topbar">
+    <div class="topbar__brand">
+      <img src="assets/AIFA_logo.png" alt="Logotipo AIFA" class="topbar__logo" />
+      <div class="topbar__titles">
+        <span class="brand">Validación de constancias</span>
+        <span class="topbar__subtitle">Aeropuerto Internacional Felipe Ángeles</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="admin-main">
+    <section class="panel panel--elevated">
+      <header class="panel__header">
+        <div class="panel__heading">
+          <h1 class="panel__title">Verifica la autenticidad</h1>
+          <p class="panel__subtitle">Ingresa el folio que aparece en la constancia para validar su vigencia.</p>
+        </div>
+      </header>
+      <form id="validacion-form" class="panel__toolbar">
+        <div class="input-group">
+          <label for="folio-input">Folio</label>
+          <input id="folio-input" name="folio" required placeholder="AIFA-YYYYMMDD-..." />
+        </div>
+        <button class="btn btn--primary" type="submit">Validar folio</button>
+      </form>
+      <p id="validacion-hint" class="form__hint" aria-live="polite"></p>
+    </section>
+
+    <section id="resultado-validacion" class="panel panel--elevated">
+      <header class="panel__header">
+        <div class="panel__heading">
+          <h2 class="panel__title">Resultado</h2>
+          <span id="estado-validacion" class="badge badge--info">Esperando folio</span>
+        </div>
+      </header>
+      <ul id="detalle-validacion" class="list list--divided"></ul>
+    </section>
+  </main>
+</body>
+</html>
