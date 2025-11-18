@@ -9,6 +9,7 @@ import { initializeLeccionesModule } from "./modules/leccionesModule.js";
 import { initializeMaterialesModule } from "./modules/materialesModule.js";
 import { initializeBancoPreguntasModule } from "./modules/bancoPreguntasModule.js";
 import { initializeEvaluacionesModule } from "./modules/evaluacionesModule.js";
+import { initializeReportesModule } from "./modules/reportesModule.js";
 
 const selectors = {
   logoutButton: document.querySelector("#btn-logout"),
@@ -52,6 +53,11 @@ const moduleDefinitions = {
     templateId: "module-template-evaluaciones",
     subtitle: "Administración de evaluaciones",
     initialize: (user) => initializeEvaluacionesModule(user)
+  },
+  reportes: {
+    templateId: "module-template-reportes",
+    subtitle: "Panel de reportes",
+    initialize: (user) => initializeReportesModule(user)
   },
   roles: {
     templateId: "module-template-roles",
