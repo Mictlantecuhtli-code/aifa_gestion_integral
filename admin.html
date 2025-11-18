@@ -51,6 +51,9 @@
       <button class="admin-menu__button" type="button" data-module-target="evaluaciones" aria-pressed="false">
         <span class="admin-menu__label">Evaluaciones</span>
       </button>
+      <button class="admin-menu__button" type="button" data-module-target="reportes" aria-pressed="false">
+        <span class="admin-menu__label">Reportes</span>
+      </button>
       <button class="admin-menu__button" type="button" data-module-target="roles" aria-pressed="false">
         <span class="admin-menu__label">Roles</span>
       </button>
@@ -1000,6 +1003,138 @@
           </footer>
         </form>
       </dialog>
+    </div>
+  </template>
+
+  <template id="module-template-reportes">
+    <div class="admin-module admin-module--reportes">
+      <section class="panel panel--elevated">
+        <header class="panel__header">
+          <div class="panel__heading">
+            <h1 class="panel__title">Reportes</h1>
+            <p class="panel__subtitle">Monitoreo de cursos, evaluaciones y usuarios con filtros avanzados.</p>
+          </div>
+          <div class="panel__actions">
+            <button id="reportes-export-csv" class="btn btn--primary" type="button">Exportar CSV</button>
+          </div>
+        </header>
+        <div class="panel__toolbar">
+          <div class="input-group">
+            <label for="reportes-filter-curso">Curso</label>
+            <select id="reportes-filter-curso"></select>
+          </div>
+          <div class="input-group">
+            <label for="reportes-filter-modulo">Módulo</label>
+            <select id="reportes-filter-modulo"></select>
+          </div>
+          <div class="input-group">
+            <label for="reportes-filter-leccion">Lección</label>
+            <select id="reportes-filter-leccion"></select>
+          </div>
+          <div class="input-group">
+            <label for="reportes-filter-area">Área</label>
+            <select id="reportes-filter-area"></select>
+          </div>
+          <div class="input-group">
+            <label for="reportes-filter-jerarquia">Jerarquía</label>
+            <select id="reportes-filter-jerarquia"></select>
+          </div>
+          <div class="input-group">
+            <label for="reportes-filter-rol">Rol</label>
+            <select id="reportes-filter-rol"></select>
+          </div>
+          <div class="input-group">
+            <label for="reportes-filter-estatus">Estatus de evaluación</label>
+            <select id="reportes-filter-estatus">
+              <option value="todos" selected>Todos</option>
+              <option value="en_progreso">En progreso</option>
+              <option value="aprobado">Aprobado</option>
+              <option value="reprobado">Reprobado</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label for="reportes-filter-usuario">Usuario</label>
+            <select id="reportes-filter-usuario"></select>
+          </div>
+          <div class="input-group">
+            <label for="reportes-filter-fecha-inicio">Fecha inicio</label>
+            <input id="reportes-filter-fecha-inicio" type="date" />
+          </div>
+          <div class="input-group">
+            <label for="reportes-filter-fecha-fin">Fecha fin</label>
+            <input id="reportes-filter-fecha-fin" type="date" />
+          </div>
+        </div>
+
+        <div class="panel__content">
+          <h2 class="panel__subtitle">Reporte por curso</h2>
+          <div class="table-wrapper" role="region" aria-live="polite">
+            <table class="table" aria-describedby="reportes-curso-summary">
+              <thead>
+                <tr>
+                  <th>Curso</th>
+                  <th>Total usuarios</th>
+                  <th>Iniciaron</th>
+                  <th>Completaron</th>
+                  <th>Avance promedio</th>
+                </tr>
+              </thead>
+              <tbody id="reportes-curso-body">
+                <tr>
+                  <td colspan="5" class="table__empty">Cargando reportes de curso…</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p id="reportes-curso-summary" class="panel__summary"></p>
+
+          <h2 class="panel__subtitle">Reporte de evaluaciones</h2>
+          <div class="table-wrapper" role="region" aria-live="polite">
+            <table class="table" aria-describedby="reportes-evaluacion-summary">
+              <thead>
+                <tr>
+                  <th>Evaluación</th>
+                  <th>Curso</th>
+                  <th>Intentos</th>
+                  <th>Mejor calificación</th>
+                  <th>Intentos usados</th>
+                  <th>Tiempo promedio</th>
+                  <th>Aprobados / Reprobados</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody id="reportes-evaluaciones-body">
+                <tr>
+                  <td colspan="8" class="table__empty">Cargando reportes de evaluaciones…</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p id="reportes-evaluacion-summary" class="panel__summary"></p>
+
+          <h2 class="panel__subtitle">Detalle por usuario</h2>
+          <div class="table-wrapper" role="region" aria-live="polite">
+            <table class="table" aria-describedby="reportes-usuario-summary">
+              <thead>
+                <tr>
+                  <th>Curso</th>
+                  <th>Evaluación</th>
+                  <th>Intentos</th>
+                  <th>Mejor calificación</th>
+                  <th>Tiempo dedicado</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody id="reportes-usuario-body">
+                <tr>
+                  <td colspan="6" class="table__empty">Selecciona un usuario para mostrar su detalle.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p id="reportes-usuario-summary" class="panel__summary"></p>
+        </div>
+      </section>
     </div>
   </template>
 </body>
