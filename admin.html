@@ -51,6 +51,9 @@
       <button class="admin-menu__button" type="button" data-module-target="evaluaciones" aria-pressed="false">
         <span class="admin-menu__label">Evaluaciones</span>
       </button>
+      <button class="admin-menu__button" type="button" data-module-target="constancias" aria-pressed="false">
+        <span class="admin-menu__label">Constancias</span>
+      </button>
       <button class="admin-menu__button" type="button" data-module-target="reportes" aria-pressed="false">
         <span class="admin-menu__label">Reportes</span>
       </button>
@@ -1002,6 +1005,131 @@
             <button type="submit" class="btn btn--primary">Confirmar</button>
           </footer>
         </form>
+      </dialog>
+    </div>
+  </template>
+
+  <template id="module-template-constancias">
+    <div class="admin-module admin-module--constancias">
+      <section class="panel panel--elevated">
+        <header class="panel__header">
+          <div class="panel__heading">
+            <h1 class="panel__title">Constancias</h1>
+            <p class="panel__subtitle">Emite y consulta constancias digitales con folio y validación QR.</p>
+          </div>
+          <div class="panel__actions">
+            <button id="btn-refrescar-pendientes" class="btn btn--ghost" type="button">Actualizar elegibles</button>
+            <button id="btn-generar-constancia" class="btn btn--primary" type="button">Generar constancia</button>
+          </div>
+        </header>
+        <div class="panel__toolbar panel__toolbar--stacked">
+          <div class="form form--grid">
+            <div class="form__field">
+              <label for="constancias-curso">Curso</label>
+              <select id="constancias-curso"></select>
+            </div>
+            <div class="form__field">
+              <label for="constancias-usuario">Usuario</label>
+              <select id="constancias-usuario"></select>
+            </div>
+            <div class="form__field">
+              <label for="constancias-validation-base">URL base de validación</label>
+              <input
+                id="constancias-validation-base"
+                type="url"
+                value="https://aifa-certificaciones.vercel.app/validar/"
+                placeholder="https://aifa-certificaciones.vercel.app/validar/"
+              />
+            </div>
+          </div>
+          <p id="constancias-folio-preview" class="form__hint" aria-live="polite"></p>
+          <p id="constancias-aviso" class="form__hint" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <section class="panel panel--elevated">
+        <header class="panel__header">
+          <div class="panel__heading">
+            <h2 class="panel__title">Pendientes por emitir</h2>
+            <p class="panel__subtitle">Alumnos que cumplen requisitos y aún no tienen constancia.</p>
+          </div>
+        </header>
+        <div class="table-wrapper" role="region" aria-live="polite">
+          <table class="table" aria-describedby="constancias-pendientes-summary">
+            <thead>
+              <tr>
+                <th>Alumno</th>
+                <th>Curso</th>
+                <th>Mejor calificación</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="constancias-pendientes-body">
+              <tr>
+                <td colspan="4" class="table__empty">Cargando pendientes…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p id="constancias-pendientes-summary" class="panel__summary"></p>
+      </section>
+
+      <section class="panel panel--elevated">
+        <header class="panel__header">
+          <div class="panel__heading">
+            <h2 class="panel__title">Histórico de constancias</h2>
+            <p class="panel__subtitle">Descarga, consulta y valida constancias emitidas.</p>
+          </div>
+          <div class="panel__toolbar">
+            <div class="input-group">
+              <label for="constancias-filter-curso">Curso</label>
+              <select id="constancias-filter-curso"></select>
+            </div>
+            <div class="input-group">
+              <label for="constancias-filter-usuario">Usuario</label>
+              <select id="constancias-filter-usuario"></select>
+            </div>
+            <div class="input-group">
+              <label for="constancias-filter-estado">Estado</label>
+              <select id="constancias-filter-estado">
+                <option value="todos">Todos</option>
+                <option value="emitidas">Emitidas</option>
+                <option value="pendientes">Pendientes</option>
+              </select>
+            </div>
+          </div>
+        </header>
+        <div class="table-wrapper" role="region" aria-live="polite">
+          <table class="table" aria-describedby="constancias-summary">
+            <thead>
+              <tr>
+                <th>Alumno</th>
+                <th>Curso</th>
+                <th>Calificación</th>
+                <th>Fecha</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="constancias-table-body">
+              <tr>
+                <td colspan="6" class="table__empty">Cargando constancias…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p id="constancias-summary" class="panel__summary"></p>
+      </section>
+
+      <dialog id="constancia-dialog" class="dialog">
+        <div class="dialog__content">
+          <header class="dialog__header">
+            <h2 id="constancia-dialog-title">Detalle de constancia</h2>
+            <button type="button" class="btn btn--ghost" id="constancia-dialog-close" aria-label="Cerrar">×</button>
+          </header>
+          <section class="dialog__body" id="constancia-dialog-content"></section>
+          <footer class="dialog__footer" id="constancia-dialog-actions"></footer>
+        </div>
       </dialog>
     </div>
   </template>
