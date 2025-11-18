@@ -16,6 +16,8 @@ import { maestrosModule } from "./modules/maestrosModule.js";
 
 const ALLOWED_ROLES = ["administrador", "maestro", "instructor", "alumno"];
 
+const ALLOWED_ROLES = ["administrador", "maestro", "instructor", "alumno"];
+
 const selectors = {
   logoutButton: document.querySelector("#btn-logout"),
   navigationLinks: Array.from(document.querySelectorAll(".admin-menu__button")),
