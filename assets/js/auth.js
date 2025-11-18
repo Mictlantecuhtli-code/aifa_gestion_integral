@@ -1,4 +1,5 @@
 import { supabaseDb } from "./supabaseClient.js";
+import { ROLE_ACCESS_WHITELIST, normalizeRoles } from "./constants/roles.js";
 
 const loginForm = document.querySelector("#login-form");
 const hint = document.querySelector("#form-hint");
@@ -11,24 +12,10 @@ async function redirectIfAuthenticated() {
 
   if (!session) return;
 
-  const hasAdminRole = await userHasAdministratorRole(session.user.id);
-  if (hasAdminRole) {
-    window.location.replace("admin.html");
+  const destination = await resolveDestination(session.user.id);
+  if (destination) {
+    window.location.replace(destination);
   }
-}
-
-async function userHasAdministratorRole(userId) {
-  const { data, error } = await supabaseDb
-    .from("usuarios_roles")
-    .select("roles:rol_id(nombre)")
-    .eq("usuario_id", userId);
-
-  if (error) {
-    console.error("Error al verificar roles", error);
-    return false;
-  }
-
-  return (data ?? []).some((row) => (row.roles?.nombre ?? "").toLowerCase() === "administrador");
 }
 
 async function authenticate(email, password) {
@@ -45,8 +32,8 @@ async function authenticate(email, password) {
     return;
   }
 
-  const isAdmin = await userHasAdministratorRole(data.user.id);
-  if (!isAdmin) {
+  const destination = await resolveDestination(data.user.id);
+  if (!destination) {
     setFormState({
       loading: false,
       message: "Tu cuenta no tiene permisos para acceder al panel administrativo.",
@@ -57,7 +44,28 @@ async function authenticate(email, password) {
   }
 
   setFormState({ loading: false, message: "Acceso concedido. Redireccionando…" });
-  window.location.replace("admin.html");
+  window.location.replace(destination);
+}
+
+async function resolveDestination(userId) {
+  const { data, error } = await supabaseDb
+    .from("usuarios_roles")
+    .select("roles:rol_id(nombre)")
+    .eq("usuario_id", userId);
+
+  if (error) {
+    console.error("Error al verificar roles", error);
+    return null;
+  }
+
+  const roles = normalizeRoles(data);
+  if (!roles.some((role) => ROLE_ACCESS_WHITELIST.includes(role))) return null;
+
+  if (roles.includes("administrador")) return "admin.html";
+  if (roles.includes("maestro") || roles.includes("instructor")) return "admin.html#maestros";
+  if (roles.includes("alumno")) return "admin.html#alumnos";
+
+  return null;
 }
 
 function setFormState({ loading, message, isError = false }) {

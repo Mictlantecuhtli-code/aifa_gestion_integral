@@ -11,6 +11,9 @@ import { initializeBancoPreguntasModule } from "./modules/bancoPreguntasModule.j
 import { initializeEvaluacionesModule } from "./modules/evaluacionesModule.js";
 import { initializeConstanciasModule } from "./modules/constanciasModule.js";
 import { initializeReportesModule } from "./modules/reportesModule.js";
+import { alumnosModule } from "./modules/alumnosModule.js";
+import { maestrosModule } from "./modules/maestrosModule.js";
+import { ROLE_ACCESS_WHITELIST, normalizeRoles } from "./constants/roles.js";
 
 const selectors = {
   logoutButton: document.querySelector("#btn-logout"),
@@ -65,6 +68,16 @@ const moduleDefinitions = {
     subtitle: "Panel de reportes",
     initialize: (user) => initializeReportesModule(user)
   },
+  alumnos: {
+    templateId: "module-template-alumnos",
+    subtitle: "Panel del alumno",
+    initialize: (user) => alumnosModule.init(user)
+  },
+  maestros: {
+    templateId: "module-template-maestros",
+    subtitle: "Panel del instructor",
+    initialize: (user) => maestrosModule.init(user)
+  },
   roles: {
     templateId: "module-template-roles",
     subtitle: "Administración de roles",
@@ -84,15 +97,29 @@ const moduleDefinitions = {
 
 let currentModuleKey = null;
 let currentUser = null;
+let currentUserRoles = [];
 async function initApp() {
-  currentUser = await ensureAuthenticated();
-  if (!currentUser) {
+  const sessionInfo = await ensureAuthenticated();
+  if (!sessionInfo) {
     return;
   }
 
+  currentUser = sessionInfo.user;
+  currentUserRoles = sessionInfo.roles;
+
   registerGlobalEventListeners();
-  const defaultModule = selectors.navigationLinks.find((link) => link.dataset.moduleTarget)?.dataset.moduleTarget ?? "usuarios";
+  const defaultModule =
+    getPreferredModuleFromHash() ??
+    getPreferredModuleFromRoles() ??
+    selectors.navigationLinks.find((link) => link.dataset.moduleTarget)?.dataset.moduleTarget ??
+    "usuarios";
   await loadModule(defaultModule);
+}
+
+function getPreferredModuleFromHash() {
+  const hash = window.location.hash.replace("#", "");
+  if (!hash) return null;
+  return Object.keys(moduleDefinitions).includes(hash) ? hash : null;
 }
 
 async function ensureAuthenticated() {
@@ -116,18 +143,27 @@ async function ensureAuthenticated() {
     return null;
   }
 
-  const isAdmin = (data ?? []).some((row) => (row.roles?.nombre ?? "").toLowerCase() === "administrador");
-  if (!isAdmin) {
+  const roles = normalizeRoles(data);
+  const hasAccess = roles.some((role) => ROLE_ACCESS_WHITELIST.includes(role));
+  if (!hasAccess) {
     await supabaseDb.auth.signOut();
     redirectToLogin();
     return null;
   }
 
-  return session.user;
+  return { user: session.user, roles };
 }
 
 function redirectToLogin() {
   window.location.replace("index.html");
+}
+
+function getPreferredModuleFromRoles() {
+  if (!currentUserRoles.length) return null;
+  if (currentUserRoles.includes("administrador")) return "usuarios";
+  if (currentUserRoles.includes("maestro") || currentUserRoles.includes("instructor")) return "maestros";
+  if (currentUserRoles.includes("alumno")) return "alumnos";
+  return null;
 }
 
 function registerGlobalEventListeners() {
@@ -153,6 +189,10 @@ async function loadModule(moduleKey) {
   setActiveNavigation(moduleKey);
   updateSubtitle(definition.subtitle);
   showLoadingState();
+
+  if (window.location.hash.replace("#", "") !== moduleKey) {
+    window.location.hash = moduleKey;
+  }
 
   const template = document.getElementById(definition.templateId);
   if (!template) {
