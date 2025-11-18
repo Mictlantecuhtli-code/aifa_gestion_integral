@@ -4,6 +4,8 @@ const loginForm = document.querySelector("#login-form");
 const hint = document.querySelector("#form-hint");
 const submitButton = loginForm?.querySelector("button[type='submit']");
 
+const ALLOWED_ROLES = ["administrador", "maestro", "instructor", "alumno"];
+
 async function redirectIfAuthenticated() {
   const {
     data: { session }
@@ -11,13 +13,13 @@ async function redirectIfAuthenticated() {
 
   if (!session) return;
 
-  const hasAdminRole = await userHasAdministratorRole(session.user.id);
-  if (hasAdminRole) {
+  const hasAccess = await userHasAllowedRole(session.user.id);
+  if (hasAccess) {
     window.location.replace("admin.html");
   }
 }
 
-async function userHasAdministratorRole(userId) {
+async function userHasAllowedRole(userId) {
   const { data, error } = await supabaseDb
     .from("usuarios_roles")
     .select("roles:rol_id(nombre)")
@@ -28,7 +30,7 @@ async function userHasAdministratorRole(userId) {
     return false;
   }
 
-  return (data ?? []).some((row) => (row.roles?.nombre ?? "").toLowerCase() === "administrador");
+  return (data ?? []).some((row) => ALLOWED_ROLES.includes((row.roles?.nombre ?? "").toLowerCase()));
 }
 
 async function authenticate(email, password) {
@@ -45,8 +47,8 @@ async function authenticate(email, password) {
     return;
   }
 
-  const isAdmin = await userHasAdministratorRole(data.user.id);
-  if (!isAdmin) {
+  const hasAccess = await userHasAllowedRole(data.user.id);
+  if (!hasAccess) {
     setFormState({
       loading: false,
       message: "Tu cuenta no tiene permisos para acceder al panel administrativo.",
