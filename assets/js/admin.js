@@ -13,7 +13,7 @@ import { initializeConstanciasModule } from "./modules/constanciasModule.js";
 import { initializeReportesModule } from "./modules/reportesModule.js";
 import { alumnosModule } from "./modules/alumnosModule.js";
 import { maestrosModule } from "./modules/maestrosModule.js";
-import { ALLOWED_ROLES, normalizeRoles } from "./constants/roles.js";
+import { ROLE_ACCESS_WHITELIST, normalizeRoles } from "./constants/roles.js";
 
 const selectors = {
   logoutButton: document.querySelector("#btn-logout"),
@@ -144,7 +144,7 @@ async function ensureAuthenticated() {
   }
 
   const roles = normalizeRoles(data);
-  const hasAccess = roles.some((role) => ALLOWED_ROLES.includes(role));
+  const hasAccess = roles.some((role) => ROLE_ACCESS_WHITELIST.includes(role));
   if (!hasAccess) {
     await supabaseDb.auth.signOut();
     redirectToLogin();

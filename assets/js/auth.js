@@ -1,5 +1,5 @@
 import { supabaseDb } from "./supabaseClient.js";
-import { ALLOWED_ROLES, normalizeRoles } from "./constants/roles.js";
+import { ROLE_ACCESS_WHITELIST, normalizeRoles } from "./constants/roles.js";
 
 const loginForm = document.querySelector("#login-form");
 const hint = document.querySelector("#form-hint");
@@ -61,7 +61,7 @@ async function resolveDestination(userId) {
   }
 
   const roles = normalizeRoles(data);
-  if (!roles.some((role) => ALLOWED_ROLES.includes(role))) return null;
+  if (!roles.some((role) => ROLE_ACCESS_WHITELIST.includes(role))) return null;
 
   if (roles.includes("administrador")) return "admin.html";
   if (roles.includes("maestro") || roles.includes("instructor")) return "admin.html#maestros";
