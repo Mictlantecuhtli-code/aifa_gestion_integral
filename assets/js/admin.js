@@ -11,6 +11,10 @@ import { initializeBancoPreguntasModule } from "./modules/bancoPreguntasModule.j
 import { initializeEvaluacionesModule } from "./modules/evaluacionesModule.js";
 import { initializeConstanciasModule } from "./modules/constanciasModule.js";
 import { initializeReportesModule } from "./modules/reportesModule.js";
+import { alumnosModule } from "./modules/alumnosModule.js";
+import { maestrosModule } from "./modules/maestrosModule.js";
+
+const ALLOWED_ROLES = ["administrador", "maestro", "instructor", "alumno"];
 
 const ALLOWED_ROLES = ["administrador", "maestro", "instructor", "alumno"];
 
@@ -67,6 +71,16 @@ const moduleDefinitions = {
     subtitle: "Panel de reportes",
     initialize: (user) => initializeReportesModule(user)
   },
+  alumnos: {
+    templateId: "module-template-alumnos",
+    subtitle: "Panel del alumno",
+    initialize: (user) => alumnosModule.init(user)
+  },
+  maestros: {
+    templateId: "module-template-maestros",
+    subtitle: "Panel del instructor",
+    initialize: (user) => maestrosModule.init(user)
+  },
   roles: {
     templateId: "module-template-roles",
     subtitle: "Administración de roles",
@@ -93,8 +107,14 @@ async function initApp() {
   }
 
   registerGlobalEventListeners();
-  const defaultModule = selectors.navigationLinks.find((link) => link.dataset.moduleTarget)?.dataset.moduleTarget ?? "usuarios";
+  const defaultModule = getPreferredModuleFromHash() ?? selectors.navigationLinks.find((link) => link.dataset.moduleTarget)?.dataset.moduleTarget ?? "usuarios";
   await loadModule(defaultModule);
+}
+
+function getPreferredModuleFromHash() {
+  const hash = window.location.hash.replace("#", "");
+  if (!hash) return null;
+  return Object.keys(moduleDefinitions).includes(hash) ? hash : null;
 }
 
 async function ensureAuthenticated() {
@@ -155,6 +175,10 @@ async function loadModule(moduleKey) {
   setActiveNavigation(moduleKey);
   updateSubtitle(definition.subtitle);
   showLoadingState();
+
+  if (window.location.hash.replace("#", "") !== moduleKey) {
+    window.location.hash = moduleKey;
+  }
 
   const template = document.getElementById(definition.templateId);
   if (!template) {

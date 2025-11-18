@@ -13,24 +13,10 @@ async function redirectIfAuthenticated() {
 
   if (!session) return;
 
-  const hasAccess = await userHasAllowedRole(session.user.id);
-  if (hasAccess) {
-    window.location.replace("admin.html");
+  const destination = await resolveDestination(session.user.id);
+  if (destination) {
+    window.location.replace(destination);
   }
-}
-
-async function userHasAllowedRole(userId) {
-  const { data, error } = await supabaseDb
-    .from("usuarios_roles")
-    .select("roles:rol_id(nombre)")
-    .eq("usuario_id", userId);
-
-  if (error) {
-    console.error("Error al verificar roles", error);
-    return false;
-  }
-
-  return (data ?? []).some((row) => ALLOWED_ROLES.includes((row.roles?.nombre ?? "").toLowerCase()));
 }
 
 async function authenticate(email, password) {
@@ -47,8 +33,8 @@ async function authenticate(email, password) {
     return;
   }
 
-  const hasAccess = await userHasAllowedRole(data.user.id);
-  if (!hasAccess) {
+  const destination = await resolveDestination(data.user.id);
+  if (!destination) {
     setFormState({
       loading: false,
       message: "Tu cuenta no tiene permisos para acceder al panel administrativo.",
@@ -59,7 +45,28 @@ async function authenticate(email, password) {
   }
 
   setFormState({ loading: false, message: "Acceso concedido. Redireccionando…" });
-  window.location.replace("admin.html");
+  window.location.replace(destination);
+}
+
+async function resolveDestination(userId) {
+  const { data, error } = await supabaseDb
+    .from("usuarios_roles")
+    .select("roles:rol_id(nombre)")
+    .eq("usuario_id", userId);
+
+  if (error) {
+    console.error("Error al verificar roles", error);
+    return null;
+  }
+
+  const roles = (data ?? []).map((row) => (row.roles?.nombre ?? "").toLowerCase());
+  if (!roles.some((role) => ALLOWED_ROLES.includes(role))) return null;
+
+  if (roles.includes("administrador")) return "admin.html";
+  if (roles.includes("maestro") || roles.includes("instructor")) return "admin.html#maestros";
+  if (roles.includes("alumno")) return "admin.html#alumnos";
+
+  return null;
 }
 
 function setFormState({ loading, message, isError = false }) {
