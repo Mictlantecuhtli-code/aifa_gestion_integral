@@ -24,7 +24,7 @@
     <div class="admin-main__top">
       <button id="btn-logout" class="btn btn--outline" type="button">Cerrar sesión</button>
     </div>
-    <div class="admin-menu" role="group" aria-label="Paneles de administración">
+    <div class="admin-menu admin-menu--primary" role="group" aria-label="Paneles de administración">
       <button
         class="admin-menu__button admin-menu__button--active"
         type="button"
@@ -65,6 +65,12 @@
       </button>
       <button class="admin-menu__button" type="button" data-module-target="asignaciones" aria-pressed="false">
         <span class="admin-menu__label">Asignar permisos</span>
+      </button>
+    </div>
+    <div class="admin-menu admin-menu--secondary" id="role-menu" role="group" aria-label="Accesos rápidos" hidden>
+      <p class="admin-menu__helper" id="role-menu-label">Panel adicional</p>
+      <button class="admin-menu__button" type="button" id="role-menu-button" aria-pressed="false" data-module-target="">
+        <span class="admin-menu__label" id="role-menu-button-label">Panel</span>
       </button>
     </div>
     <div id="module-container" class="admin-module-container">
