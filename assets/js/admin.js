@@ -23,8 +23,10 @@ const selectors = {
   adminMenu: document.querySelector(".admin-menu--primary"),
   roleMenu: document.querySelector("#role-menu"),
   roleMenuLabel: document.querySelector("#role-menu-label"),
+  roleMenuSubtitle: document.querySelector("#role-menu-subtitle"),
   roleMenuButton: document.querySelector("#role-menu-button"),
-  roleMenuButtonLabel: document.querySelector("#role-menu-button-label")
+  roleMenuButtonLabel: document.querySelector("#role-menu-button-label"),
+  body: document.body
 };
 
 const moduleDefinitions = {
@@ -178,6 +180,10 @@ function configureNavigationVisibility() {
   const isAlumno = currentUserRoles.includes("alumno");
   const roleModuleKey = isMaestro ? "maestros" : isAlumno ? "alumnos" : null;
 
+  if (selectors.body) {
+    selectors.body.classList.toggle("role-only-shell", !isAdmin && Boolean(roleModuleKey));
+  }
+
   if (selectors.adminMenu) {
     if (isAdmin) {
       selectors.adminMenu.removeAttribute("hidden");
@@ -191,6 +197,9 @@ function configureNavigationVisibility() {
     selectors.roleMenuButton.dataset.moduleTarget = roleModuleKey;
     selectors.roleMenuButton.setAttribute("aria-pressed", "false");
     selectors.roleMenuButtonLabel.textContent = roleModuleKey === "maestros" ? "Panel Maestro" : "Panel Alumno";
+    if (selectors.roleMenuSubtitle) {
+      selectors.roleMenuSubtitle.textContent = roleModuleKey === "maestros" ? "Panel del instructor" : "Panel del alumno";
+    }
     selectors.roleMenuLabel.textContent = roleModuleKey === "maestros" ? "Acceso de instructor" : "Acceso de alumno";
   } else if (selectors.roleMenu) {
     selectors.roleMenu.setAttribute("hidden", "true");
