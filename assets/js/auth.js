@@ -5,6 +5,8 @@ const loginForm = document.querySelector("#login-form");
 const hint = document.querySelector("#form-hint");
 const submitButton = loginForm?.querySelector("button[type='submit']");
 
+const ALLOWED_ROLES = ["administrador", "maestro", "instructor", "alumno"];
+
 async function redirectIfAuthenticated() {
   const {
     data: { session }
