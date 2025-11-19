@@ -11,12 +11,22 @@ import { initializeBancoPreguntasModule } from "./modules/bancoPreguntasModule.j
 import { initializeEvaluacionesModule } from "./modules/evaluacionesModule.js";
 import { initializeConstanciasModule } from "./modules/constanciasModule.js";
 import { initializeReportesModule } from "./modules/reportesModule.js";
+import { alumnosModule } from "./modules/alumnosModule.js";
+import { maestrosModule } from "./modules/maestrosModule.js";
+import { ROLE_ACCESS_WHITELIST, normalizeRoles } from "./constants/roles.js";
 
 const selectors = {
   logoutButton: document.querySelector("#btn-logout"),
-  navigationLinks: Array.from(document.querySelectorAll(".admin-menu__button")),
+  navigationLinks: Array.from(document.querySelectorAll(".admin-menu--primary .admin-menu__button")),
   moduleContainer: document.querySelector("#module-container"),
-  topbarSubtitle: document.querySelector(".topbar__subtitle")
+  topbarSubtitle: document.querySelector(".topbar__subtitle"),
+  adminMenu: document.querySelector(".admin-menu--primary"),
+  roleMenu: document.querySelector("#role-menu"),
+  roleMenuLabel: document.querySelector("#role-menu-label"),
+  roleMenuSubtitle: document.querySelector("#role-menu-subtitle"),
+  roleMenuButton: document.querySelector("#role-menu-button"),
+  roleMenuButtonLabel: document.querySelector("#role-menu-button-label"),
+  body: document.body
 };
 
 const moduleDefinitions = {
@@ -65,6 +75,16 @@ const moduleDefinitions = {
     subtitle: "Panel de reportes",
     initialize: (user) => initializeReportesModule(user)
   },
+  alumnos: {
+    templateId: "module-template-alumnos",
+    subtitle: "Panel del alumno",
+    initialize: (user) => alumnosModule.init(user)
+  },
+  maestros: {
+    templateId: "module-template-maestros",
+    subtitle: "Panel del instructor",
+    initialize: (user) => maestrosModule.init(user)
+  },
   roles: {
     templateId: "module-template-roles",
     subtitle: "Administración de roles",
@@ -84,15 +104,30 @@ const moduleDefinitions = {
 
 let currentModuleKey = null;
 let currentUser = null;
+let currentUserRoles = [];
 async function initApp() {
-  currentUser = await ensureAuthenticated();
-  if (!currentUser) {
+  const sessionInfo = await ensureAuthenticated();
+  if (!sessionInfo) {
     return;
   }
 
+  currentUser = sessionInfo.user;
+  currentUserRoles = sessionInfo.roles;
+
+  configureNavigationVisibility();
   registerGlobalEventListeners();
-  const defaultModule = selectors.navigationLinks.find((link) => link.dataset.moduleTarget)?.dataset.moduleTarget ?? "usuarios";
+  const defaultModule =
+    getPreferredModuleFromHash() ??
+    getPreferredModuleFromRoles() ??
+    selectors.navigationLinks.find((link) => link.dataset.moduleTarget)?.dataset.moduleTarget ??
+    "usuarios";
   await loadModule(defaultModule);
+}
+
+function getPreferredModuleFromHash() {
+  const hash = window.location.hash.replace("#", "");
+  if (!hash) return null;
+  return Object.keys(moduleDefinitions).includes(hash) ? hash : null;
 }
 
 async function ensureAuthenticated() {
@@ -116,18 +151,59 @@ async function ensureAuthenticated() {
     return null;
   }
 
-  const isAdmin = (data ?? []).some((row) => (row.roles?.nombre ?? "").toLowerCase() === "administrador");
-  if (!isAdmin) {
+  const roles = normalizeRoles(data);
+  const hasAccess = roles.some((role) => ROLE_ACCESS_WHITELIST.includes(role));
+  if (!hasAccess) {
     await supabaseDb.auth.signOut();
     redirectToLogin();
     return null;
   }
 
-  return session.user;
+  return { user: session.user, roles };
 }
 
 function redirectToLogin() {
   window.location.replace("index.html");
+}
+
+function getPreferredModuleFromRoles() {
+  if (!currentUserRoles.length) return null;
+  if (currentUserRoles.includes("administrador")) return "usuarios";
+  if (currentUserRoles.includes("maestro") || currentUserRoles.includes("instructor")) return "maestros";
+  if (currentUserRoles.includes("alumno")) return "alumnos";
+  return null;
+}
+
+function configureNavigationVisibility() {
+  const isAdmin = currentUserRoles.includes("administrador");
+  const isMaestro = currentUserRoles.includes("maestro") || currentUserRoles.includes("instructor");
+  const isAlumno = currentUserRoles.includes("alumno");
+  const roleModuleKey = isMaestro ? "maestros" : isAlumno ? "alumnos" : null;
+
+  if (selectors.body) {
+    selectors.body.classList.toggle("role-only-shell", !isAdmin && Boolean(roleModuleKey));
+  }
+
+  if (selectors.adminMenu) {
+    if (isAdmin) {
+      selectors.adminMenu.removeAttribute("hidden");
+    } else {
+      selectors.adminMenu.setAttribute("hidden", "true");
+    }
+  }
+
+  if (roleModuleKey && selectors.roleMenu && selectors.roleMenuButton && selectors.roleMenuButtonLabel && selectors.roleMenuLabel) {
+    selectors.roleMenu.removeAttribute("hidden");
+    selectors.roleMenuButton.dataset.moduleTarget = roleModuleKey;
+    selectors.roleMenuButton.setAttribute("aria-pressed", "false");
+    selectors.roleMenuButtonLabel.textContent = roleModuleKey === "maestros" ? "Panel Maestro" : "Panel Alumno";
+    if (selectors.roleMenuSubtitle) {
+      selectors.roleMenuSubtitle.textContent = roleModuleKey === "maestros" ? "Panel del instructor" : "Panel del alumno";
+    }
+    selectors.roleMenuLabel.textContent = roleModuleKey === "maestros" ? "Acceso de instructor" : "Acceso de alumno";
+  } else if (selectors.roleMenu) {
+    selectors.roleMenu.setAttribute("hidden", "true");
+  }
 }
 
 function registerGlobalEventListeners() {
@@ -143,6 +219,12 @@ function registerGlobalEventListeners() {
       await loadModule(moduleKey);
     });
   });
+
+  selectors.roleMenuButton?.addEventListener("click", async () => {
+    const moduleKey = selectors.roleMenuButton?.dataset.moduleTarget;
+    if (!moduleKey || moduleKey === currentModuleKey) return;
+    await loadModule(moduleKey);
+  });
 }
 
 async function loadModule(moduleKey) {
@@ -153,6 +235,10 @@ async function loadModule(moduleKey) {
   setActiveNavigation(moduleKey);
   updateSubtitle(definition.subtitle);
   showLoadingState();
+
+  if (window.location.hash.replace("#", "") !== moduleKey) {
+    window.location.hash = moduleKey;
+  }
 
   const template = document.getElementById(definition.templateId);
   if (!template) {
@@ -179,6 +265,12 @@ function setActiveNavigation(moduleKey) {
     control.classList.toggle("admin-menu__button--active", isActive);
     control.setAttribute("aria-pressed", String(isActive));
   });
+
+  if (selectors.roleMenuButton) {
+    const isRoleActive = selectors.roleMenuButton.dataset.moduleTarget === moduleKey;
+    selectors.roleMenuButton.classList.toggle("admin-menu__button--active", isRoleActive);
+    selectors.roleMenuButton.setAttribute("aria-pressed", String(isRoleActive));
+  }
 }
 
 function updateSubtitle(subtitle) {
