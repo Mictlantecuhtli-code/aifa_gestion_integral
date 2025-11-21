@@ -41,11 +41,13 @@ function isCorrectAnswer(pregunta, respuestaUsuario) {
   return JSON.stringify(correct) === JSON.stringify(user);
 }
 
+const CALIFICACION_MINIMA_DEFAULT = 60;
+
 async function fetchEvaluacionContext(evaluacionId) {
   return supabaseDb
     .from("evaluaciones")
     .select(
-      `id,leccion_id,intentos_max,tiempo_limite,activo,calificacion_minima,
+      `id,leccion_id,intentos_max,tiempo_limite,activo,
        lecciones:leccion_id(id,modulo_id,modulos:modulo_id(id,curso_id))`
     )
     .eq("id", evaluacionId)
@@ -410,7 +412,7 @@ export const evaluacionesBackendModule = {
 
     const { data: evaluacionDetalle, error: evaluacionError } = await supabaseDb
       .from("evaluaciones")
-      .select("id,calificacion_minima,tiempo_limite")
+      .select("id,tiempo_limite")
       .eq("id", intento.evaluacion_id)
       .maybeSingle();
 
@@ -478,7 +480,7 @@ export const evaluacionesBackendModule = {
 
     const totalPreguntas = preguntas.length || 1;
     const calificacion = Number(((respuestasCorrectas / totalPreguntas) * 100).toFixed(2));
-    const aprobado = calificacion >= (evaluacionDetalle.calificacion_minima ?? 60);
+    const aprobado = calificacion >= CALIFICACION_MINIMA_DEFAULT;
 
     const { error: updateError } = await supabaseDb
       .from("evaluaciones_intentos")
