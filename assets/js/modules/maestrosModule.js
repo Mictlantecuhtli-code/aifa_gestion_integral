@@ -42,7 +42,6 @@ export const maestrosModule = {
     this.ensureContainer();
 
     await this.loadUserRoles();
-    this.ensureMenuVisibility();
 
     if (!this.state.currentUser || (!this.state.isInstructor && !this.state.isAdmin)) {
       this.renderError("No tienes permisos para acceder al panel de instructores.");
@@ -91,28 +90,6 @@ export const maestrosModule = {
     this.state.roles = (data ?? []).map((row) => row.roles?.nombre?.toLowerCase?.() ?? "");
     this.state.isInstructor = this.state.roles.includes("maestro") || this.state.roles.includes("instructor");
     this.state.isAdmin = this.state.roles.includes("administrador");
-  },
-
-  ensureMenuVisibility() {
-    const container = document.querySelector(".nav-dropdown__list") || document.querySelector("[data-teacher-menu]");
-    if (!container) return;
-
-    let item = container.querySelector("li[data-module='maestrosModule']");
-    if (!item) {
-      item = document.createElement("li");
-      item.dataset.module = "maestrosModule";
-      const link = document.createElement("a");
-      link.href = "#";
-      link.textContent = "Panel Instructor";
-      link.addEventListener("click", (event) => {
-        event.preventDefault();
-        this.init();
-      });
-      item.append(link);
-      container.append(item);
-    }
-
-    item.hidden = !(this.state.isInstructor || this.state.isAdmin);
   },
 
   async loadCursosInstructor() {
@@ -307,8 +284,8 @@ export const maestrosModule = {
                 <div class="list__actions">
                   <span class="badge badge--primary">${formatPercent(row.progreso ?? 0)}</span>
                   <button class="btn btn--ghost" data-action="open-alumno" data-alumno-id="${row.usuario_id}" data-curso-id="${
-            row.curso_id
-          }">Ver detalle</button>
+              row.curso_id
+            }">Ver detalle</button>
                 </div>
               </div>
             `
@@ -412,4 +389,3 @@ export const maestrosModule = {
     }
   }
 };
-
