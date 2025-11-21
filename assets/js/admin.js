@@ -101,7 +101,33 @@ let currentModuleKey = null;
 let currentUser = null;
 let currentUserRoles = [];
 
+// Agregar estilos dinámicos para el botón de rol
+function addRoleButtonStyles() {
+  const styleId = 'role-button-fix';
+  if (document.getElementById(styleId)) return;
+  
+  const style = document.createElement('style');
+  style.id = styleId;
+  style.textContent = `
+    .admin-menu--primary {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 0.5rem !important;
+    }
+    
+    .admin-menu--primary .admin-menu__button {
+      position: relative !important;
+      margin: 0 !important;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+// Llamar esta función al inicio
+addRoleButtonStyles();
+
 async function initApp() {
+  addRoleButtonStyles();
   const sessionInfo = await ensureAuthenticated();
   if (!sessionInfo) {
     return;
