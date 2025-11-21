@@ -19,53 +19,51 @@
       <span class="topbar__nav-label">Administración</span>
     </nav>
   </header>
-
+      <!-- NUEVO: Sidebar fuera de main -->
+      <aside class="admin-sidebar">
+        <div class="admin-menu admin-menu--primary" role="group" aria-label="Paneles de administración">
+          <button class="admin-menu__button admin-menu__button--active" type="button" data-module-target="usuarios" aria-pressed="true">
+            <span class="admin-menu__label">Usuarios</span>
+          </button>
+          <button class="admin-menu__button" type="button" data-module-target="cursos" aria-pressed="false">
+            <span class="admin-menu__label">Cursos</span>
+          </button>
+          <button class="admin-menu__button" type="button" data-module-target="modulos-curso" aria-pressed="false">
+            <span class="admin-menu__label">Módulos del curso</span>
+          </button>
+          <button class="admin-menu__button" type="button" data-module-target="lecciones" aria-pressed="false">
+            <span class="admin-menu__label">Lecciones</span>
+          </button>
+          <button class="admin-menu__button" type="button" data-module-target="materiales" aria-pressed="false">
+            <span class="admin-menu__label">Materiales</span>
+          </button>
+          <button class="admin-menu__button" type="button" data-module-target="banco-preguntas" aria-pressed="false">
+            <span class="admin-menu__label">Banco de Preguntas</span>
+          </button>
+          <button class="admin-menu__button" type="button" data-module-target="evaluaciones" aria-pressed="false">
+            <span class="admin-menu__label">Evaluaciones</span>
+          </button>
+          <button class="admin-menu__button" type="button" data-module-target="constancias" aria-pressed="false">
+            <span class="admin-menu__label">Constancias</span>
+          </button>
+          <button class="admin-menu__button" type="button" data-module-target="reportes" aria-pressed="false">
+            <span class="admin-menu__label">Reportes</span>
+          </button>
+          <button class="admin-menu__button" type="button" data-module-target="roles" aria-pressed="false">
+            <span class="admin-menu__label">Roles</span>
+          </button>
+          <button class="admin-menu__button" type="button" data-module-target="permisos" aria-pressed="false">
+            <span class="admin-menu__label">Permisos</span>
+          </button>
+          <button class="admin-menu__button" type="button" data-module-target="asignaciones" aria-pressed="false">
+            <span class="admin-menu__label">Asignar permisos</span>
+          </button>
+        </div>
+      </aside>
+  
   <main class="admin-main">
     <div class="admin-main__top">
       <button id="btn-logout" class="btn btn--outline" type="button">Cerrar sesión</button>
-    </div>
-    <div class="admin-menu admin-menu--primary" role="group" aria-label="Paneles de administración">
-      <button
-        class="admin-menu__button admin-menu__button--active"
-        type="button"
-        data-module-target="usuarios"
-        aria-pressed="true"
-      >
-        <span class="admin-menu__label">Usuarios</span>
-      </button>
-      <button class="admin-menu__button" type="button" data-module-target="cursos" aria-pressed="false">
-        <span class="admin-menu__label">Cursos</span>
-      </button>
-      <button class="admin-menu__button" type="button" data-module-target="modulos-curso" aria-pressed="false">
-        <span class="admin-menu__label">Módulos del curso</span>
-      </button>
-      <button class="admin-menu__button" type="button" data-module-target="lecciones" aria-pressed="false">
-        <span class="admin-menu__label">Lecciones</span>
-      </button>
-      <button class="admin-menu__button" type="button" data-module-target="materiales" aria-pressed="false">
-        <span class="admin-menu__label">Materiales</span>
-      </button>
-      <button class="admin-menu__button" type="button" data-module-target="banco-preguntas" aria-pressed="false">
-        <span class="admin-menu__label">Banco de Preguntas</span>
-      </button>
-      <button class="admin-menu__button" type="button" data-module-target="evaluaciones" aria-pressed="false">
-        <span class="admin-menu__label">Evaluaciones</span>
-      </button>
-      <button class="admin-menu__button" type="button" data-module-target="constancias" aria-pressed="false">
-        <span class="admin-menu__label">Constancias</span>
-      </button>
-      <button class="admin-menu__button" type="button" data-module-target="reportes" aria-pressed="false">
-        <span class="admin-menu__label">Reportes</span>
-      </button>
-      <button class="admin-menu__button" type="button" data-module-target="roles" aria-pressed="false">
-        <span class="admin-menu__label">Roles</span>
-      </button>
-      <button class="admin-menu__button" type="button" data-module-target="permisos" aria-pressed="false">
-        <span class="admin-menu__label">Permisos</span>
-      </button>
-      <button class="admin-menu__button" type="button" data-module-target="asignaciones" aria-pressed="false">
-        <span class="admin-menu__label">Asignar permisos</span>
-      </button>
     </div>
     <div id="module-container" class="admin-module-container">
       <section class="panel panel--elevated admin-module__loading">
