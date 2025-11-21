@@ -186,16 +186,20 @@ function configureNavigationVisibility() {
 
   if (!selectors.adminMenu) return;
 
+  // Actualizar el título del menú
+  const menuTitle = document.querySelector("#admin-menu-title");
+  
   // Si es ADMINISTRADOR: mostrar todos los botones
   if (isAdmin) {
     selectors.adminMenu.removeAttribute("hidden");
+    if (menuTitle) menuTitle.textContent = "Administración";
     selectors.navigationLinks.forEach(link => {
       link.style.display = "";
     });
     return;
   }
 
-  // Si NO es administrador: ocultar botones admin y crear botón de rol
+  // Si NO es administrador: configurar para rol específico
   selectors.adminMenu.removeAttribute("hidden");
   
   // Ocultar todos los botones existentes
@@ -203,16 +207,24 @@ function configureNavigationVisibility() {
     link.style.display = "none";
   });
 
-  // Determinar qué botón mostrar
+  // Determinar qué mostrar según el rol
   let moduleKey = null;
   let buttonLabel = "";
+  let menuTitleText = "";
   
   if (isMaestro) {
     moduleKey = "maestros";
     buttonLabel = "Panel Maestro";
+    menuTitleText = "Panel del instructor";
   } else if (isAlumno) {
     moduleKey = "alumnos";
     buttonLabel = "Panel Alumno";
+    menuTitleText = "Panel del alumno";
+  }
+
+  // Actualizar el título del menú
+  if (menuTitle && menuTitleText) {
+    menuTitle.textContent = menuTitleText;
   }
 
   if (moduleKey) {
@@ -225,7 +237,12 @@ function configureNavigationVisibility() {
       roleButton.className = "admin-menu__button";
       roleButton.dataset.moduleTarget = moduleKey;
       roleButton.setAttribute("aria-pressed", "false");
-      roleButton.textContent = buttonLabel;
+      
+      // Crear la estructura con span como los demás botones
+      const span = document.createElement("span");
+      span.className = "admin-menu__label";
+      span.textContent = buttonLabel;
+      roleButton.appendChild(span);
       
       selectors.adminMenu.appendChild(roleButton);
       selectors.navigationLinks.push(roleButton);
