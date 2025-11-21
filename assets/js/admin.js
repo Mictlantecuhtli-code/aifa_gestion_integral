@@ -225,6 +225,7 @@ function configureNavigationVisibility() {
       roleButton.className = "admin-menu__button";
       roleButton.dataset.moduleTarget = moduleKey;
       roleButton.setAttribute("aria-pressed", "false");
+      roleButton.setAttribute("type", "button");
       
       // Crear la estructura con span como los demás botones
       const span = document.createElement("span");
@@ -232,7 +233,13 @@ function configureNavigationVisibility() {
       span.textContent = buttonLabel;
       roleButton.appendChild(span);
       
-      selectors.adminMenu.appendChild(roleButton);
+      // CRÍTICO: Insertar como primer hijo DESPUÉS de verificar que adminMenu existe
+      if (selectors.adminMenu.firstChild) {
+        selectors.adminMenu.insertBefore(roleButton, selectors.adminMenu.firstChild);
+      } else {
+        selectors.adminMenu.appendChild(roleButton);
+      }
+      
       selectors.navigationLinks.push(roleButton);
       
       roleButton.addEventListener("click", async () => {
