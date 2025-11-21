@@ -13,6 +13,7 @@ import { initializeConstanciasModule } from "./modules/constanciasModule.js";
 import { initializeReportesModule } from "./modules/reportesModule.js";
 import { alumnosModule } from "./modules/alumnosModule.js";
 import { maestrosModule } from "./modules/maestrosModule.js";
+import { initializeAsignacionCursosUsuariosModule } from "./modules/asignacionCursosUsuariosModule.js";
 import { ROLE_ACCESS_WHITELIST, normalizeRoles } from "./constants/roles.js";
 
 const selectors = {
@@ -34,6 +35,11 @@ const moduleDefinitions = {
     templateId: "module-template-cursos",
     subtitle: "Administración de cursos",
     initialize: (user) => initializeCursosModule(user)
+  },
+  "asignacion-cursos": {
+    templateId: "module-template-asignacion-cursos",
+    subtitle: "Asignación de cursos a usuarios",
+    initialize: (user) => initializeAsignacionCursosUsuariosModule(user)
   },
   "modulos-curso": {
     templateId: "module-template-modulos-curso",

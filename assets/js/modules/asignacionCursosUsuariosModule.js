@@ -1,6 +1,32 @@
 import { supabaseDb } from "../supabaseClient.js";
 import { normalizeRoles } from "../constants/roles.js";
 
+const statusClasses = {
+  success: "is-success",
+  error: "is-error",
+  info: "is-info"
+};
+
+function createUiState() {
+  return {
+    adminId: null,
+    isLoading: false
+  };
+}
+
+let uiState = createUiState();
+let selectors = {};
+
+function resolveSelectors() {
+  selectors = {
+    userSelect: document.querySelector("#select-usuario-asignacion"),
+    courseSelect: document.querySelector("#select-curso-asignacion"),
+    assignButton: document.querySelector("#btn-asignar-curso"),
+    refreshButton: document.querySelector("#btn-refresh-asignacion-cursos"),
+    statusMessage: document.querySelector("#asignacion-estado")
+  };
+}
+
 /**
  * Recupera los usuarios activos disponibles para asignación de cursos.
  * @returns {Promise<{success: boolean, data?: any[], message?: string}>}
@@ -113,6 +139,151 @@ export async function registrarAuditoria(adminId, cursoId, usuarioId, ipOrigen) 
   }
 
   return { success: true };
+}
+
+function setStatus(message, type = "info") {
+  if (!selectors.statusMessage) return;
+
+  selectors.statusMessage.textContent = message ?? "";
+  selectors.statusMessage.classList.remove(...Object.values(statusClasses));
+  const statusClass = statusClasses[type];
+  if (statusClass) {
+    selectors.statusMessage.classList.add(statusClass);
+  }
+}
+
+function setLoading(isLoading) {
+  uiState.isLoading = isLoading;
+  if (selectors.assignButton) {
+    selectors.assignButton.disabled = isLoading;
+    selectors.assignButton.textContent = isLoading ? "Asignando…" : "Asignar curso";
+  }
+  if (selectors.refreshButton) {
+    selectors.refreshButton.disabled = isLoading;
+  }
+}
+
+function renderSelectOptions(select, options, placeholder) {
+  if (!select) return;
+
+  const currentValue = select.value;
+  select.innerHTML = "";
+
+  const placeholderOption = document.createElement("option");
+  placeholderOption.value = "";
+  placeholderOption.textContent = placeholder;
+  placeholderOption.disabled = true;
+  placeholderOption.selected = true;
+  select.append(placeholderOption);
+
+  options.forEach((option) => select.append(option));
+
+  if (currentValue && Array.from(select.options).some((opt) => opt.value === currentValue)) {
+    select.value = currentValue;
+    placeholderOption.selected = false;
+  }
+}
+
+function mapUsersToOptions(users) {
+  return (users ?? []).map((user) => {
+    const option = document.createElement("option");
+    option.value = user.id;
+    const fullName = [user.nombre, user.apellido].filter(Boolean).join(" ");
+    option.textContent = fullName || user.correo || "Usuario sin nombre";
+    option.dataset.email = user.correo ?? "";
+    return option;
+  });
+}
+
+function mapCoursesToOptions(courses) {
+  return (courses ?? []).map((course) => {
+    const option = document.createElement("option");
+    option.value = course.id;
+    option.textContent = course.nombre ?? "Curso sin título";
+    return option;
+  });
+}
+
+async function loadLists() {
+  setLoading(true);
+  setStatus("Cargando usuarios y cursos activos…", "info");
+
+  const [usuarios, cursos] = await Promise.all([obtenerUsuariosActivos(), obtenerCursosActivos()]);
+
+  if (!usuarios.success) {
+    setLoading(false);
+    setStatus(usuarios.message ?? "No fue posible cargar los usuarios.", "error");
+    return;
+  }
+
+  if (!cursos.success) {
+    setLoading(false);
+    setStatus(cursos.message ?? "No fue posible cargar los cursos.", "error");
+    return;
+  }
+
+  renderSelectOptions(
+    selectors.userSelect,
+    mapUsersToOptions(usuarios.data),
+    "Seleccione un usuario activo"
+  );
+
+  renderSelectOptions(
+    selectors.courseSelect,
+    mapCoursesToOptions(cursos.data),
+    "Seleccione un curso activo"
+  );
+
+  setStatus("Listas actualizadas.", "success");
+  setLoading(false);
+}
+
+async function handleAssignment() {
+  if (!uiState.adminId) {
+    setStatus("No se pudo identificar al usuario administrador.", "error");
+    return;
+  }
+
+  const cursoId = selectors.courseSelect?.value;
+  const usuarioId = selectors.userSelect?.value;
+
+  if (!cursoId || !usuarioId) {
+    setStatus("Seleccione un usuario y un curso antes de continuar.", "error");
+    return;
+  }
+
+  setLoading(true);
+  setStatus("Procesando asignación…", "info");
+
+  const resultado = await asignarCurso(cursoId, usuarioId, uiState.adminId);
+
+  if (!resultado.success) {
+    setStatus(resultado.message ?? "No fue posible completar la asignación.", "error");
+    setLoading(false);
+    return;
+  }
+
+  setStatus(resultado.message ?? "Curso asignado correctamente.", "success");
+  setLoading(false);
+}
+
+function registerEvents() {
+  selectors.assignButton?.addEventListener("click", handleAssignment);
+  selectors.refreshButton?.addEventListener("click", loadLists);
+}
+
+export async function initializeAsignacionCursosUsuariosModule(currentUser) {
+  uiState = createUiState();
+  uiState.adminId = currentUser?.id ?? null;
+
+  resolveSelectors();
+  if (!selectors.userSelect || !selectors.courseSelect) {
+    return;
+  }
+
+  setStatus("Preparando módulo…", "info");
+  registerEvents();
+  await loadLists();
 }
 
 async function validarAdmin(adminId) {
