@@ -246,26 +246,33 @@ function configureNavigationVisibility() {
       btn => btn.dataset.moduleTarget === moduleKey
     );
 
-    if (!roleButton) {
+      if (!roleButton) {
+      // Primero ocultar TODOS los botones existentes
+      selectors.navigationLinks.forEach(link => {
+      link.remove(); // Eliminarlos del DOM
+      });
+      // Crear el nuevo botón
       roleButton = document.createElement("button");
-      roleButton.className = "admin-menu__button";
+      roleButton.className = "admin-menu__button admin-menu__button--active";
       roleButton.dataset.moduleTarget = moduleKey;
-      roleButton.setAttribute("aria-pressed", "false");
+      roleButton.setAttribute("aria-pressed", "true");
       roleButton.setAttribute("type", "button");
       
-      // Crear la estructura con span como los demás botones
       const span = document.createElement("span");
       span.className = "admin-menu__label";
       span.textContent = buttonLabel;
       roleButton.appendChild(span);
-      
+      // Agregar el botón al menú
+      selectors.adminMenu.appendChild(roleButton);
+      // Actualizar la lista
+      selectors.navigationLinks = [roleButton];
       // CRÍTICO: Insertar como primer hijo DESPUÉS de verificar que adminMenu existe
       if (selectors.adminMenu.firstChild) {
         selectors.adminMenu.insertBefore(roleButton, selectors.adminMenu.firstChild);
       } else {
         selectors.adminMenu.appendChild(roleButton);
       }
-      
+          
       selectors.navigationLinks.push(roleButton);
       
       roleButton.addEventListener("click", async () => {
