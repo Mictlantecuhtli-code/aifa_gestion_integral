@@ -186,13 +186,9 @@ function configureNavigationVisibility() {
 
   if (!selectors.adminMenu) return;
 
-  // Actualizar el título del menú
-  const menuTitle = document.querySelector("#admin-menu-title");
-  
   // Si es ADMINISTRADOR: mostrar todos los botones
   if (isAdmin) {
     selectors.adminMenu.removeAttribute("hidden");
-    if (menuTitle) menuTitle.textContent = "Administración";
     selectors.navigationLinks.forEach(link => {
       link.style.display = "";
     });
@@ -210,21 +206,13 @@ function configureNavigationVisibility() {
   // Determinar qué mostrar según el rol
   let moduleKey = null;
   let buttonLabel = "";
-  let menuTitleText = "";
   
   if (isMaestro) {
     moduleKey = "maestros";
     buttonLabel = "Panel Maestro";
-    menuTitleText = "Panel del instructor";
   } else if (isAlumno) {
     moduleKey = "alumnos";
     buttonLabel = "Panel Alumno";
-    menuTitleText = "Panel del alumno";
-  }
-
-  // Actualizar el título del menú
-  if (menuTitle && menuTitleText) {
-    menuTitle.textContent = menuTitleText;
   }
 
   if (moduleKey) {
