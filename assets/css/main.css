@@ -655,14 +655,14 @@ body.role-only-shell .admin-module-container {
   padding-inline: 1.5rem;
 }
 
-.admin-menu {
+.admin-menu--primary {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 0.75rem;
-  width: 100%;
-  align-items: center;
-  justify-content: flex-start;
-  margin-top: -0.25rem;
+  padding: 1.5rem;
+  background: #ffffff;
+  border-right: 1px solid var(--color-border);
+  overflow-y: auto;
 }
 
 .admin-menu--secondary {
@@ -677,35 +677,33 @@ body.role-only-shell .admin-module-container {
 }
 
 .admin-menu__button {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 0.5rem;
-  padding: 0.7rem 1.35rem;
-  border-radius: 999px;
-  border: 1px solid rgba(213, 220, 242, 0.65);
-  background: rgba(255, 255, 255, 0.65);
-  color: #5b6c9e;
-  font-weight: 600;
-  font-size: 0.95rem;
+  width: 100%;
+  padding: 0.875rem 1.25rem;
+  border-radius: 10px;
+  border: none;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: 500;
+  font-size: 0.9375rem;
   cursor: pointer;
-  transition: background var(--transition-base), color var(--transition-base), box-shadow var(--transition-base), transform var(--transition-fast);
-  box-shadow: 0 12px 26px rgba(29, 78, 216, 0.14);
+  transition: background var(--transition-base), color var(--transition-base);
+  box-shadow: none;
 }
 
 .admin-menu__button:hover,
 .admin-menu__button:focus-visible {
-  color: var(--color-primary);
-  background: var(--color-surface);
-  transform: translateY(-1px);
+  background: var(--color-surface-alt);
   outline: none;
 }
 
 .admin-menu__button--active {
   color: var(--color-primary-contrast);
   background: var(--color-primary);
-  border-color: transparent;
-  box-shadow: 0 18px 38px rgba(29, 78, 216, 0.25);
+  box-shadow: none;
 }
 
 .admin-menu__label {
