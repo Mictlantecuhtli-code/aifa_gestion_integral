@@ -28,6 +28,9 @@
           <button class="admin-menu__button" type="button" data-module-target="cursos" aria-pressed="false">
             <span class="admin-menu__label">Cursos</span>
           </button>
+          <button class="admin-menu__button" type="button" data-module-target="asignacion-cursos" aria-pressed="false">
+            <span class="admin-menu__label">Asignación de cursos</span>
+          </button>
           <button class="admin-menu__button" type="button" data-module-target="modulos-curso" aria-pressed="false">
             <span class="admin-menu__label">Módulos del curso</span>
           </button>
@@ -1256,6 +1259,54 @@
             </table>
           </div>
           <p id="reportes-usuario-summary" class="panel__summary"></p>
+        </div>
+      </section>
+    </div>
+  </template>
+
+  <template id="module-template-asignacion-cursos">
+    <div class="admin-module admin-module--asignacion-cursos">
+      <section class="panel panel--elevated">
+        <header class="panel__header">
+          <div class="panel__heading">
+            <h1 class="panel__title">Asignación de cursos a usuarios</h1>
+            <p class="panel__subtitle">Solo los administradores pueden asignar cursos a usuarios activos.</p>
+          </div>
+          <div class="panel__actions">
+            <button id="btn-refresh-asignacion-cursos" class="btn btn--ghost" type="button">Actualizar listas</button>
+          </div>
+        </header>
+        <div class="panel__toolbar panel__toolbar--stacked">
+          <div class="form form--grid">
+            <div class="form__field">
+              <label for="select-usuario-asignacion">Usuario</label>
+              <select id="select-usuario-asignacion" required>
+                <option value="" disabled selected>Seleccione un usuario activo</option>
+              </select>
+            </div>
+            <div class="form__field">
+              <label for="select-curso-asignacion">Curso</label>
+              <select id="select-curso-asignacion" required>
+                <option value="" disabled selected>Seleccione un curso activo</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="panel__body">
+          <div class="stack stack--md">
+            <div class="callout callout--info">
+              <p class="callout__title">Validaciones automáticas</p>
+              <ul class="callout__list">
+                <li>Requiere permisos de administrador.</li>
+                <li>Solo se muestran usuarios y cursos activos.</li>
+                <li>Se evita la asignación duplicada del mismo curso al usuario.</li>
+              </ul>
+            </div>
+            <div class="panel__actions panel__actions--start">
+              <button id="btn-asignar-curso" class="btn btn--primary" type="button">Asignar curso</button>
+              <p id="asignacion-estado" class="panel__summary" role="status" aria-live="polite"></p>
+            </div>
+          </div>
         </div>
       </section>
     </div>
