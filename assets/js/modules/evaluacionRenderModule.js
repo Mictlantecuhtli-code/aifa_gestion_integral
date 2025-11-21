@@ -1,5 +1,7 @@
 import { supabaseDb } from "../supabaseClient.js";
 
+const CALIFICACION_MINIMA_DEFAULT = 60;
+
 function createInitialState() {
   return {
     currentUser: null,
@@ -115,9 +117,7 @@ export const evaluacionRenderModule = {
     try {
       const { data: evaluacion, error } = await supabaseDb
         .from("evaluaciones")
-        .select(
-          "id,titulo,descripcion,instrucciones,intentos_max,tiempo_limite,activo,leccion_id,calificacion_minima"
-        )
+        .select("id,titulo,descripcion,instrucciones,intentos_max,tiempo_limite,activo,leccion_id")
         .eq("id", evaluacionId)
         .maybeSingle();
 
@@ -609,7 +609,7 @@ export const evaluacionRenderModule = {
     const aciertos = this.state.respuestasActuales.filter((respuesta) => respuesta.correcta).length;
     const calificacion = totalPreguntas > 0 ? (aciertos / totalPreguntas) * 100 : 0;
     const calificacionFinal = Math.round(calificacion * 100) / 100;
-    const passingScore = Number(this.state.evaluacion?.calificacion_minima ?? 0) || 80;
+    const passingScore = CALIFICACION_MINIMA_DEFAULT;
     const aprobado = calificacionFinal >= passingScore;
 
     const { error } = await supabaseDb
