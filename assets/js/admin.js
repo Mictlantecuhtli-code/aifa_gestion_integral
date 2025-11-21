@@ -212,7 +212,7 @@ function configureNavigationVisibility() {
 
   if (!selectors.adminMenu) return;
 
-  // Si es ADMINISTRADOR: mostrar todos los botones
+  // Si es ADMINISTRADOR: mostrar todos los botones normalmente
   if (isAdmin) {
     selectors.adminMenu.removeAttribute("hidden");
     selectors.navigationLinks.forEach(link => {
@@ -221,15 +221,10 @@ function configureNavigationVisibility() {
     return;
   }
 
-  // Si NO es administrador: configurar para rol específico
+  // Si NO es administrador: convertir el primer botón en el botón del rol
   selectors.adminMenu.removeAttribute("hidden");
-  
-  // Ocultar todos los botones existentes
-  selectors.navigationLinks.forEach(link => {
-    link.style.display = "none";
-  });
 
-  // Determinar qué mostrar según el rol
+  // Determinar configuración según el rol
   let moduleKey = null;
   let buttonLabel = "";
   
@@ -241,48 +236,32 @@ function configureNavigationVisibility() {
     buttonLabel = "Panel Alumno";
   }
 
-  if (moduleKey) {
-    let roleButton = selectors.navigationLinks.find(
-      btn => btn.dataset.moduleTarget === moduleKey
-    );
+  if (!moduleKey) return;
 
-      if (!roleButton) {
-      // Primero ocultar TODOS los botones existentes
-      selectors.navigationLinks.forEach(link => {
-      link.remove(); // Eliminarlos del DOM
-      });
-      // Crear el nuevo botón
-      roleButton = document.createElement("button");
-      roleButton.className = "admin-menu__button admin-menu__button--active";
-      roleButton.dataset.moduleTarget = moduleKey;
-      roleButton.setAttribute("aria-pressed", "true");
-      roleButton.setAttribute("type", "button");
-      
-      const span = document.createElement("span");
-      span.className = "admin-menu__label";
-      span.textContent = buttonLabel;
-      roleButton.appendChild(span);
-      // Agregar el botón al menú
-      selectors.adminMenu.appendChild(roleButton);
-      // Actualizar la lista
-      selectors.navigationLinks = [roleButton];
-      // CRÍTICO: Insertar como primer hijo DESPUÉS de verificar que adminMenu existe
-      if (selectors.adminMenu.firstChild) {
-        selectors.adminMenu.insertBefore(roleButton, selectors.adminMenu.firstChild);
-      } else {
-        selectors.adminMenu.appendChild(roleButton);
-      }
-          
-      selectors.navigationLinks.push(roleButton);
-      
-      roleButton.addEventListener("click", async () => {
-        if (moduleKey === currentModuleKey) return;
-        await loadModule(moduleKey);
-      });
+  // Tomar el primer botón y convertirlo en el botón del rol
+  const firstButton = selectors.navigationLinks[0];
+  if (firstButton) {
+    // Cambiar sus propiedades
+    firstButton.dataset.moduleTarget = moduleKey;
+    firstButton.setAttribute("aria-pressed", "true");
+    firstButton.classList.add("admin-menu__button--active");
+    
+    // Cambiar el texto del span interno
+    const labelSpan = firstButton.querySelector(".admin-menu__label");
+    if (labelSpan) {
+      labelSpan.textContent = buttonLabel;
     }
-
-    roleButton.style.display = "";
+    
+    // Mostrar solo este botón
+    firstButton.style.display = "";
   }
+
+  // Ocultar todos los demás botones
+  selectors.navigationLinks.forEach((link, index) => {
+    if (index > 0) {
+      link.style.display = "none";
+    }
+  });
 }
 
 function registerGlobalEventListeners() {
