@@ -21,9 +21,9 @@ const selectors = {
   moduleContainer: document.querySelector("#module-container"),
   topbarSubtitle: document.querySelector(".topbar__subtitle"),
   adminMenu: document.querySelector(".admin-menu--primary"),
+  adminSidebar: document.querySelector(".admin-sidebar"), // NUEVO
   body: document.body
 };
-
 const moduleDefinitions = {
   usuarios: {
     templateId: "module-template-usuarios",
@@ -210,57 +210,36 @@ function configureNavigationVisibility() {
     selectors.body.classList.toggle("role-only-shell", !isAdmin);
   }
 
+  // Mostrar/ocultar sidebar completo
+  if (selectors.adminSidebar) {
+    selectors.adminSidebar.style.display = "";
+  }
+
   if (!selectors.adminMenu) return;
 
-  // Si es ADMINISTRADOR: mostrar todos los botones normalmente
+  // Si es ADMINISTRADOR: mostrar todos
   if (isAdmin) {
-    selectors.adminMenu.removeAttribute("hidden");
-    selectors.navigationLinks.forEach(link => {
-      link.style.display = "";
-    });
+    selectors.navigationLinks.forEach(link => link.style.display = "");
     return;
   }
 
-  // Si NO es administrador: convertir el primer botón en el botón del rol
-  selectors.adminMenu.removeAttribute("hidden");
-
-  // Determinar configuración según el rol
-  let moduleKey = null;
-  let buttonLabel = "";
-  
-  if (isMaestro) {
-    moduleKey = "maestros";
-    buttonLabel = "Panel Maestro";
-  } else if (isAlumno) {
-    moduleKey = "alumnos";
-    buttonLabel = "Panel Alumno";
-  }
+  // Si NO es admin: modificar primer botón y ocultar el resto
+  let moduleKey = isMaestro ? "maestros" : isAlumno ? "alumnos" : null;
+  let buttonLabel = isMaestro ? "Panel Maestro" : isAlumno ? "Panel Alumno" : null;
 
   if (!moduleKey) return;
 
-  // Tomar el primer botón y convertirlo en el botón del rol
   const firstButton = selectors.navigationLinks[0];
   if (firstButton) {
-    // Cambiar sus propiedades
     firstButton.dataset.moduleTarget = moduleKey;
-    firstButton.setAttribute("aria-pressed", "true");
     firstButton.classList.add("admin-menu__button--active");
-    
-    // Cambiar el texto del span interno
     const labelSpan = firstButton.querySelector(".admin-menu__label");
-    if (labelSpan) {
-      labelSpan.textContent = buttonLabel;
-    }
-    
-    // Mostrar solo este botón
+    if (labelSpan) labelSpan.textContent = buttonLabel;
     firstButton.style.display = "";
   }
 
-  // Ocultar todos los demás botones
-  selectors.navigationLinks.forEach((link, index) => {
-    if (index > 0) {
-      link.style.display = "none";
-    }
+  selectors.navigationLinks.forEach((link, i) => {
+    if (i > 0) link.style.display = "none";
   });
 }
 
