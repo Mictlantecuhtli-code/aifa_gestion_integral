@@ -13,6 +13,7 @@ import { initializeConstanciasModule } from "./modules/constanciasModule.js";
 import { initializeReportesModule } from "./modules/reportesModule.js";
 import { alumnosModule } from "./modules/alumnosModule.js";
 import { maestrosModule } from "./modules/maestrosModule.js";
+import { evaluacionRenderModule } from "./modules/evaluacionRenderModule.js";
 import { initializeAsignacionCursosUsuariosModule } from "./modules/asignacionCursosUsuariosModule.js";
 import { ROLE_ACCESS_WHITELIST, normalizeRoles } from "./constants/roles.js";
 
@@ -85,6 +86,11 @@ const moduleDefinitions = {
     templateId: "module-template-maestros",
     subtitle: "Panel del instructor",
     initialize: (user) => maestrosModule.init(user)
+  },
+  evaluacionRenderModule: {
+    templateId: "module-template-evaluacion-render",
+    subtitle: "Resolver evaluación",
+    initialize: (user, params) => evaluacionRenderModule.init(user, params)
   },
   roles: {
     templateId: "module-template-roles",
@@ -264,7 +270,7 @@ function registerGlobalEventListeners() {
   });
 }
 
-async function loadModule(moduleKey) {
+async function loadModule(moduleKey, params = {}) {
   const definition = moduleDefinitions[moduleKey];
   if (!definition || !selectors.moduleContainer) return;
 
@@ -288,7 +294,7 @@ async function loadModule(moduleKey) {
   selectors.moduleContainer.replaceChildren(content);
 
   try {
-    await definition.initialize(currentUser);
+    await definition.initialize(currentUser, params);
   } catch (error) {
     console.error(`Error al cargar el módulo ${moduleKey}`, error);
   }
@@ -331,3 +337,7 @@ function hideLoadingState() {
 initApp().catch((error) => {
   console.error("Error al inicializar la consola de administración", error);
 });
+
+if (typeof window !== "undefined") {
+  window.loadModule = loadModule;
+}
