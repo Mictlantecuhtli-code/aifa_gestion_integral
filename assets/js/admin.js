@@ -105,6 +105,7 @@ async function initApp() {
   const sessionInfo = await ensureAuthenticated();
   if (!sessionInfo) {
     return;
+    
   }
 
   currentUser = sessionInfo.user;
@@ -179,14 +180,13 @@ function configureNavigationVisibility() {
   const isMaestro = currentUserRoles.includes("maestro") || currentUserRoles.includes("instructor");
   const isAlumno = currentUserRoles.includes("alumno");
 
-  // Añadir clase al body para controlar el diseño
   if (selectors.body) {
     selectors.body.classList.toggle("role-only-shell", !isAdmin);
   }
 
   if (!selectors.adminMenu) return;
 
-  // Si es administrador, mostrar todos los botones
+  // Si es ADMINISTRADOR: mostrar todos los botones
   if (isAdmin) {
     selectors.adminMenu.removeAttribute("hidden");
     selectors.navigationLinks.forEach(link => {
@@ -195,7 +195,7 @@ function configureNavigationVisibility() {
     return;
   }
 
-  // Si NO es administrador, ocultar todos los botones admin y mostrar solo el del rol
+  // Si NO es administrador: ocultar botones admin y crear botón de rol
   selectors.adminMenu.removeAttribute("hidden");
   
   // Ocultar todos los botones existentes
@@ -203,7 +203,7 @@ function configureNavigationVisibility() {
     link.style.display = "none";
   });
 
-  // Determinar qué módulo mostrar
+  // Determinar qué botón mostrar
   let moduleKey = null;
   let buttonLabel = "";
   
@@ -216,37 +216,26 @@ function configureNavigationVisibility() {
   }
 
   if (moduleKey) {
-    // Buscar si ya existe el botón para este módulo
     let roleButton = selectors.navigationLinks.find(
       btn => btn.dataset.moduleTarget === moduleKey
     );
 
-    // Si no existe, crearlo
     if (!roleButton) {
       roleButton = document.createElement("button");
       roleButton.className = "admin-menu__button";
       roleButton.dataset.moduleTarget = moduleKey;
-      roleButton.dataset.roleButton = "true";
       roleButton.setAttribute("aria-pressed", "false");
       roleButton.textContent = buttonLabel;
       
-      // Añadirlo al menú
-      const section = selectors.adminMenu.querySelector(".admin-menu__section");
-      if (section) {
-        section.appendChild(roleButton);
-      }
-      
-      // Añadirlo a la lista de links
+      selectors.adminMenu.appendChild(roleButton);
       selectors.navigationLinks.push(roleButton);
       
-      // Registrar el evento click
       roleButton.addEventListener("click", async () => {
         if (moduleKey === currentModuleKey) return;
         await loadModule(moduleKey);
       });
     }
 
-    // Mostrar el botón
     roleButton.style.display = "";
   }
 }
