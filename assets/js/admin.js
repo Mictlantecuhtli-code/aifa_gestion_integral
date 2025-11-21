@@ -21,11 +21,6 @@ const selectors = {
   moduleContainer: document.querySelector("#module-container"),
   topbarSubtitle: document.querySelector(".topbar__subtitle"),
   adminMenu: document.querySelector(".admin-menu--primary"),
-  roleMenu: document.querySelector("#role-menu"),
-  roleMenuLabel: document.querySelector("#role-menu-label"),
-  roleMenuSubtitle: document.querySelector("#role-menu-subtitle"),
-  roleMenuButton: document.querySelector("#role-menu-button"),
-  roleMenuButtonLabel: document.querySelector("#role-menu-button-label"),
   body: document.body
 };
 
@@ -105,6 +100,7 @@ const moduleDefinitions = {
 let currentModuleKey = null;
 let currentUser = null;
 let currentUserRoles = [];
+
 async function initApp() {
   const sessionInfo = await ensureAuthenticated();
   if (!sessionInfo) {
@@ -116,11 +112,12 @@ async function initApp() {
 
   configureNavigationVisibility();
   registerGlobalEventListeners();
+  
   const defaultModule =
     getPreferredModuleFromHash() ??
     getPreferredModuleFromRoles() ??
-    selectors.navigationLinks.find((link) => link.dataset.moduleTarget)?.dataset.moduleTarget ??
     "usuarios";
+    
   await loadModule(defaultModule);
 }
 
@@ -178,31 +175,81 @@ function configureNavigationVisibility() {
   const isAdmin = currentUserRoles.includes("administrador");
   const isMaestro = currentUserRoles.includes("maestro") || currentUserRoles.includes("instructor");
   const isAlumno = currentUserRoles.includes("alumno");
-  const roleModuleKey = isMaestro ? "maestros" : isAlumno ? "alumnos" : null;
 
+  // Añadir clase al body para controlar el diseño
   if (selectors.body) {
-    selectors.body.classList.toggle("role-only-shell", !isAdmin && Boolean(roleModuleKey));
+    selectors.body.classList.toggle("role-only-shell", !isAdmin);
   }
 
-  if (selectors.adminMenu) {
-    if (isAdmin) {
-      selectors.adminMenu.removeAttribute("hidden");
-    } else {
-      selectors.adminMenu.setAttribute("hidden", "true");
-    }
+  // Si es administrador, mostrar el menú completo
+  if (isAdmin && selectors.adminMenu) {
+    selectors.adminMenu.removeAttribute("hidden");
+    // Asegurar que todos los botones estén visibles
+    selectors.navigationLinks.forEach(link => {
+      link.style.display = "";
+    });
+  } 
+  // Si NO es administrador (maestro o alumno), ocultar menú admin
+  else if (selectors.adminMenu) {
+    selectors.adminMenu.setAttribute("hidden", "true");
   }
 
-  if (roleModuleKey && selectors.roleMenu && selectors.roleMenuButton && selectors.roleMenuButtonLabel && selectors.roleMenuLabel) {
-    selectors.roleMenu.removeAttribute("hidden");
-    selectors.roleMenuButton.dataset.moduleTarget = roleModuleKey;
-    selectors.roleMenuButton.setAttribute("aria-pressed", "false");
-    selectors.roleMenuButtonLabel.textContent = roleModuleKey === "maestros" ? "Panel Maestro" : "Panel Alumno";
-    if (selectors.roleMenuSubtitle) {
-      selectors.roleMenuSubtitle.textContent = roleModuleKey === "maestros" ? "Panel del instructor" : "Panel del alumno";
-    }
-    selectors.roleMenuLabel.textContent = roleModuleKey === "maestros" ? "Acceso de instructor" : "Acceso de alumno";
-  } else if (selectors.roleMenu) {
-    selectors.roleMenu.setAttribute("hidden", "true");
+  // Actualizar los enlaces de navegación según el rol
+  updateNavigationForRole(isMaestro, isAlumno);
+}
+
+function updateNavigationForRole(isMaestro, isAlumno) {
+  if (!selectors.adminMenu) return;
+
+  // Si es solo maestro o alumno (no admin), modificar el menú
+  if (isMaestro && !currentUserRoles.includes("administrador")) {
+    // Ocultar todos los botones del menú admin
+    selectors.navigationLinks.forEach(link => {
+      link.style.display = "none";
+    });
+    
+    // Crear o mostrar solo el botón de Panel Maestro
+    createOrUpdateRoleButton("maestros", "Panel Maestro", "Panel del instructor");
+  } else if (isAlumno && !currentUserRoles.includes("administrador")) {
+    // Ocultar todos los botones del menú admin
+    selectors.navigationLinks.forEach(link => {
+      link.style.display = "none";
+    });
+    
+    // Crear o mostrar solo el botón de Panel Alumno
+    createOrUpdateRoleButton("alumnos", "Panel Alumno", "Panel del alumno");
+  }
+}
+
+function createOrUpdateRoleButton(moduleKey, buttonLabel, subtitle) {
+  // Buscar si ya existe un botón personalizado
+  let roleButton = document.querySelector(`[data-module-target="${moduleKey}"][data-role-button]`);
+  
+  if (!roleButton && selectors.adminMenu) {
+    // Crear el botón si no existe
+    roleButton = document.createElement("button");
+    roleButton.className = "admin-menu__button";
+    roleButton.dataset.moduleTarget = moduleKey;
+    roleButton.dataset.roleButton = "true";
+    roleButton.setAttribute("aria-pressed", "false");
+    roleButton.textContent = buttonLabel;
+    
+    // Añadirlo al menú
+    selectors.adminMenu.appendChild(roleButton);
+    
+    // Registrar el evento click
+    roleButton.addEventListener("click", async () => {
+      if (moduleKey === currentModuleKey) return;
+      await loadModule(moduleKey);
+    });
+    
+    // Añadirlo a la lista de links de navegación
+    selectors.navigationLinks.push(roleButton);
+  }
+  
+  if (roleButton) {
+    roleButton.style.display = "";
+    roleButton.textContent = buttonLabel;
   }
 }
 
@@ -218,12 +265,6 @@ function registerGlobalEventListeners() {
       if (!moduleKey || moduleKey === currentModuleKey) return;
       await loadModule(moduleKey);
     });
-  });
-
-  selectors.roleMenuButton?.addEventListener("click", async () => {
-    const moduleKey = selectors.roleMenuButton?.dataset.moduleTarget;
-    if (!moduleKey || moduleKey === currentModuleKey) return;
-    await loadModule(moduleKey);
   });
 }
 
@@ -265,12 +306,6 @@ function setActiveNavigation(moduleKey) {
     control.classList.toggle("admin-menu__button--active", isActive);
     control.setAttribute("aria-pressed", String(isActive));
   });
-
-  if (selectors.roleMenuButton) {
-    const isRoleActive = selectors.roleMenuButton.dataset.moduleTarget === moduleKey;
-    selectors.roleMenuButton.classList.toggle("admin-menu__button--active", isRoleActive);
-    selectors.roleMenuButton.setAttribute("aria-pressed", String(isRoleActive));
-  }
 }
 
 function updateSubtitle(subtitle) {
