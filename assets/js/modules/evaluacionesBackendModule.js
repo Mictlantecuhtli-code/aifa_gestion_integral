@@ -187,6 +187,79 @@ export const evaluacionesBackendModule = {
     });
   },
 
+  async evaluaciones_disponibles_para_alumno(usuarioId, filtros = {}) {
+    if (!usuarioId) return buildError("Debes indicar un usuario para consultar evaluaciones disponibles.");
+
+    const { data: cursosAsignados, error: cursosError } = await supabaseDb
+      .from("cursos_usuarios")
+      .select("curso_id")
+      .eq("usuario_id", usuarioId);
+
+    if (cursosError) {
+      return buildError("No fue posible validar los cursos asignados al alumno.", cursosError?.message);
+    }
+
+    const cursoIds = new Set((cursosAsignados ?? []).map((item) => item.curso_id));
+    if (!cursoIds.size) {
+      return buildSuccess({ evaluaciones: [] });
+    }
+
+    let evaluacionesQuery = supabaseDb
+      .from("evaluaciones")
+      .select(
+        `id,titulo,descripcion,tiempo_limite,intentos_max,activo,leccion_id,
+         lecciones:leccion_id(id,nombre,modulo_id,
+           modulos:modulo_id(id,nombre,curso_id,cursos:curso_id(nombre))
+         )`
+      )
+      .eq("activo", true);
+
+    if (filtros.leccionId) evaluacionesQuery = evaluacionesQuery.eq("leccion_id", filtros.leccionId);
+
+    const { data: evaluaciones, error: evaluacionesError } = await evaluacionesQuery;
+    if (evaluacionesError) {
+      return buildError("No fue posible recuperar las evaluaciones disponibles.", evaluacionesError?.message);
+    }
+
+    const elegibles = (evaluaciones ?? []).filter((eva) => cursoIds.has(eva?.lecciones?.modulos?.curso_id));
+    const evaluacionIds = elegibles.map((eva) => eva.id);
+
+    const { data: intentosAlumno } = await supabaseDb
+      .from("evaluaciones_intentos")
+      .select("id,evaluacion_id,intento_num,fecha_inicio,fecha_fin,calificacion,aprobado,estado")
+      .eq("usuario_id", usuarioId)
+      .in("evaluacion_id", evaluacionIds)
+      .order("fecha_inicio", { ascending: false });
+
+    const intentosPorEvaluacion = (intentosAlumno ?? []).reduce((acc, intento) => {
+      if (!acc[intento.evaluacion_id]) acc[intento.evaluacion_id] = [];
+      acc[intento.evaluacion_id].push(intento);
+      return acc;
+    }, {});
+
+    const respuesta = elegibles.map((eva) => {
+      const intentos = intentosPorEvaluacion[eva.id] ?? [];
+      const ultimoIntento = intentos[0] ?? null;
+      const maxIntentos = Number(eva.intentos_max ?? 0);
+      const permiteMasIntentos = maxIntentos ? intentos.length < maxIntentos : true;
+
+      return {
+        evaluacion_id: eva.id,
+        titulo: eva.titulo,
+        descripcion: eva.descripcion,
+        leccion: eva.lecciones?.nombre ?? "",
+        curso: eva.lecciones?.modulos?.cursos?.nombre ?? "",
+        tiempo_limite: eva.tiempo_limite ?? null,
+        intentos_realizados: intentos.length,
+        ultimo_intento: ultimoIntento,
+        puede_iniciar: permiteMasIntentos || (ultimoIntento?.estado === "en_progreso"),
+        intento_en_progreso: intentos.find((i) => i.estado === "en_progreso") ?? null
+      };
+    });
+
+    return buildSuccess({ evaluaciones: respuesta });
+  },
+
   async obtener_preguntas(intentoId) {
     const { data: intento, error: intentoError } = await supabaseDb
       .from("evaluaciones_intentos")
@@ -286,6 +359,44 @@ export const evaluacionesBackendModule = {
     }
 
     return buildSuccess({ intento_id: intentoId, pregunta_id: preguntaId, guardado: true });
+  },
+
+  async detalle_intento_alumno(intentoId, usuarioId) {
+    const intentoCheck = await ensureAttemptOwnership(intentoId, usuarioId);
+    if (!intentoCheck.ok) return intentoCheck;
+
+    const intento = intentoCheck.data;
+    const { data: respuestas, error: respuestasError } = await supabaseDb
+      .from("evaluaciones_respuestas")
+      .select("pregunta_id,respuesta,correcta,banco_preguntas:pregunta_id(enunciado,respuesta_correcta)")
+      .eq("intento_id", intentoId);
+
+    if (respuestasError) {
+      return buildError("No fue posible obtener las respuestas del intento.", respuestasError?.message);
+    }
+
+    const detalleRespuestas = (respuestas ?? []).map((item) => ({
+      pregunta_id: item.pregunta_id,
+      enunciado: item.banco_preguntas?.enunciado ?? "Pregunta",
+      respuesta_usuario: item.respuesta,
+      respuesta_correcta: item.banco_preguntas?.respuesta_correcta ?? null,
+      acierto: Boolean(item.correcta)
+    }));
+
+    return buildSuccess({
+      intento: {
+        id: intento.id,
+        evaluacion_id: intento.evaluacion_id,
+        version_id: intento.version_id,
+        intento_num: intento.intento_num,
+        fecha_inicio: intento.fecha_inicio,
+        fecha_fin: intento.fecha_fin,
+        calificacion: intento.calificacion,
+        aprobado: intento.aprobado,
+        estado: intento.estado
+      },
+      respuestas: detalleRespuestas
+    });
   },
 
   async finalizar_examen(intentoId, { usuarioId = null, ipOrigen = null } = {}) {
