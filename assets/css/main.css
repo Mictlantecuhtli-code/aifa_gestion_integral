@@ -522,6 +522,11 @@ a {
   gap: 0.75rem;
 }
 
+.topbar__actions .btn {
+  padding: 0.7rem 1.8rem;
+  font-size: 0.95rem;
+}
+
 .topbar__nav {
   width: 100%;
 }
