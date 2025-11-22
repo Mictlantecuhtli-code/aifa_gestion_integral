@@ -3,6 +3,7 @@ import { supabaseDb } from "../supabaseClient.js";
 const STORAGE_BUCKET = "aifa_integral";
 const STORAGE_PREFIX = "constancias/";
 const DEFAULT_VALIDATION_BASE = "https://aifa-certificaciones.vercel.app/validar/";
+const CALIFICACION_MINIMA_DEFAULT = 60;
 
 function createOption(value, label, { selected = false, disabled = false } = {}) {
   const option = document.createElement("option");
@@ -273,7 +274,7 @@ export const constanciasModule = {
     const evaluacionesQuery = supabaseDb
       .from("evaluaciones")
       .select(
-        `id,titulo,calificacion_minima,leccion_id,activo,
+        `id,titulo,leccion_id,activo,
          lecciones:leccion_id(id,nombre,modulo_id,modulos:modulo_id(id,nombre,curso_id,cursos:curso_id(id,nombre)))`
       )
       .eq("activo", true);
@@ -344,10 +345,10 @@ export const constanciasModule = {
       detalle.evaluaciones.push({
         evaluacion_id: evaluacion.id,
         calificacion,
-        calificacion_minima: Number(evaluacion.calificacion_minima ?? 0)
+        calificacion_minima: CALIFICACION_MINIMA_DEFAULT
       });
 
-      if (calificacion < Number(evaluacion.calificacion_minima ?? 0)) {
+      if (calificacion < CALIFICACION_MINIMA_DEFAULT) {
         return { aprobado: false };
       }
       detalle.mejor_calificacion = Math.max(detalle.mejor_calificacion, calificacion);
