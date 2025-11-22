@@ -18,7 +18,9 @@ function createInitialState() {
     attemptsRemaining: null,
     isLoading: false,
     pendingVersionId: null,
-    ultimoIntento: null
+    ultimoIntento: null,
+    modal: null,
+    modalContent: null
   };
 }
 
@@ -104,6 +106,7 @@ export const evaluacionRenderModule = {
     this.state.currentUser = currentUser ?? (await fetchCurrentUser());
     this.state.evaluacionId = evaluacionId;
     this.selectors = resolveSelectors();
+    this.ensureModal();
 
     if (!this.state.currentUser) {
       console.warn("No se encontró un usuario autenticado para el módulo de evaluaciones.");
@@ -255,8 +258,9 @@ export const evaluacionRenderModule = {
     }
 
     const versionesUtilizadas = new Set(this.state.intentosPrevios.map((intento) => intento.version_id).filter(Boolean));
-    const versionDisponible = this.state.versiones.find((version) => !versionesUtilizadas.has(version.id));
-    const selected = versionDisponible ?? this.state.versiones[0] ?? null;
+    const versionesDisponibles = this.state.versiones.filter((version) => !versionesUtilizadas.has(version.id));
+    const pool = versionesDisponibles.length ? versionesDisponibles : this.state.versiones;
+    const selected = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
     this.state.pendingVersionId = selected?.id ?? null;
   },
 
@@ -355,10 +359,13 @@ export const evaluacionRenderModule = {
     this.state.intentoActual = data ?? null;
     if (this.state.intentoActual) {
       this.state.intentosPrevios = [...this.state.intentosPrevios, this.state.intentoActual];
+      this.state.pendingVersionId = this.state.intentoActual.version_id;
+      await this.loadPreguntas();
     }
 
     this.updateAttemptInformation();
     this.renderExam();
+    this.openModal();
   },
 
   renderExam() {
@@ -449,6 +456,8 @@ export const evaluacionRenderModule = {
     if (formWasMissing && this.selectors.examForm) {
       this.selectors.examForm.addEventListener("submit", (event) => this.submitExam(event));
     }
+
+    this.attachFormToModal(form);
 
     this.showMessage("Responde todas las preguntas y envía la evaluación para obtener tu calificación.");
   },
@@ -781,6 +790,63 @@ export const evaluacionRenderModule = {
       this.selectors.feedbackPanel.textContent = message;
     } else {
       container.setAttribute("data-status-message", message);
+    }
+  },
+
+  ensureModal() {
+    if (this.state.modal) return;
+
+    let modal = document.querySelector("#evaluacion-modal");
+    if (!modal) {
+      modal = document.createElement("dialog");
+      modal.id = "evaluacion-modal";
+      modal.classList.add("dialog", "dialog--xl");
+
+      const content = document.createElement("div");
+      content.classList.add("dialog__content");
+
+      const header = document.createElement("header");
+      header.classList.add("dialog__header");
+      const title = document.createElement("h2");
+      title.textContent = "Resolviendo evaluación";
+      const closeBtn = document.createElement("button");
+      closeBtn.type = "button";
+      closeBtn.classList.add("btn", "btn--ghost");
+      closeBtn.textContent = "×";
+      closeBtn.addEventListener("click", () => modal.close());
+      header.append(title, closeBtn);
+
+      const body = document.createElement("section");
+      body.classList.add("dialog__body");
+      body.setAttribute("data-evaluacion-modal-body", "true");
+
+      const footer = document.createElement("footer");
+      footer.classList.add("dialog__footer");
+      const submitBtn = document.createElement("button");
+      submitBtn.type = "button";
+      submitBtn.classList.add("btn", "btn--primary");
+      submitBtn.textContent = "Entregar evaluación";
+      submitBtn.addEventListener("click", (event) => this.submitExam(event));
+      footer.append(submitBtn);
+
+      content.append(header, body, footer);
+      modal.append(content);
+      document.body.append(modal);
+    }
+
+    this.state.modal = modal;
+    this.state.modalContent = modal.querySelector("[data-evaluacion-modal-body]");
+  },
+
+  attachFormToModal(form) {
+    if (!this.state.modal || !this.state.modalContent) return;
+    this.state.modalContent.replaceChildren(form);
+  },
+
+  openModal() {
+    if (!this.state.modal) return;
+    if (!this.state.modal.open) {
+      this.state.modal.showModal();
     }
   },
 
