@@ -1325,6 +1325,61 @@
     </div>
   </template>
 
+  <template id="module-template-evaluacion-render">
+    <div class="admin-module admin-module--evaluacion" data-module-container>
+      <section class="panel panel--elevated" data-evaluacion-container>
+        <header class="panel__header">
+          <div class="panel__heading">
+            <p class="panel__eyebrow">Evaluación</p>
+            <h1 class="panel__title" data-evaluacion-title>Resolver evaluación</h1>
+            <p class="panel__subtitle" data-evaluacion-description>
+              Prepara tus respuestas y envía el intento dentro del tiempo permitido.
+            </p>
+          </div>
+          <div class="panel__actions panel__actions--end">
+            <button class="btn btn--ghost" type="button" data-evaluacion-start>Iniciar intento</button>
+            <button class="btn btn--primary" type="button" data-evaluacion-submit disabled>Enviar respuestas</button>
+          </div>
+        </header>
+
+        <div class="panel__body grid grid--2cols">
+          <div class="stack stack--md">
+            <div class="callout callout--muted" data-evaluacion-instrucciones>
+              <p class="callout__title">Instrucciones</p>
+              <p class="callout__body">Selecciona una evaluación desde el panel de alumno para comenzar.</p>
+            </div>
+            <div class="alert" role="status" data-evaluacion-intentos></div>
+            <form class="form form--stack" data-evaluacion-form>
+              <div class="form__field" data-evaluacion-questions></div>
+            </form>
+            <div class="alert alert--muted" data-evaluacion-feedback></div>
+          </div>
+
+          <aside class="stack stack--md" aria-label="Resultados del intento">
+            <div class="card card--stat">
+              <p class="card__eyebrow">Resultado actual</p>
+              <p class="card__metric" data-evaluacion-calificacion>–</p>
+              <p class="card__description" data-evaluacion-estado>Sin enviar</p>
+            </div>
+            <div class="card card--stat">
+              <p class="card__eyebrow">Mejor calificación</p>
+              <p class="card__metric" data-evaluacion-mejor>–</p>
+              <p class="card__description">Intentos restantes: <span data-evaluacion-restantes>–</span></p>
+            </div>
+            <div class="panel panel--subtle">
+              <header class="panel__header">
+                <h2 class="panel__title">Historial de intentos</h2>
+              </header>
+              <div class="panel__body" data-evaluacion-historial>
+                <p class="panel__summary">Aún no has realizado intentos para esta evaluación.</p>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </div>
+  </template>
+
   <template id="module-template-maestros">
     <div class="admin-module admin-module--maestros" data-module-container>
       <section class="panel panel--elevated admin-module__loading">

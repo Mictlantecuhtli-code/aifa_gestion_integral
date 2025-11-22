@@ -1,5 +1,7 @@
 import { supabaseDb } from "../supabaseClient.js";
 
+const CALIFICACION_MINIMA_DEFAULT = 60;
+
 function createInitialState() {
   return {
     currentUser: null,
@@ -16,7 +18,9 @@ function createInitialState() {
     attemptsRemaining: null,
     isLoading: false,
     pendingVersionId: null,
-    ultimoIntento: null
+    ultimoIntento: null,
+    modal: null,
+    modalContent: null
   };
 }
 
@@ -54,6 +58,33 @@ function ensureArray(value) {
   return [value];
 }
 
+function parsePreguntas(versionPreguntas) {
+  let preguntas = versionPreguntas;
+
+  if (typeof preguntas === "string") {
+    try {
+      preguntas = JSON.parse(preguntas);
+    } catch (_error) {
+      return [];
+    }
+  }
+
+  return ensureArray(preguntas)
+    .map((item, index) => {
+      const baseOrden = index + 1;
+
+      if (item && typeof item === "object") {
+        return {
+          id: item.pregunta_id ?? item.id ?? item.preguntaId ?? item.pregunta ?? null,
+          orden: item.orden ?? item.order ?? baseOrden
+        };
+      }
+
+      return { id: item ?? null, orden: baseOrden };
+    })
+    .filter((entry) => Boolean(entry.id));
+}
+
 function normalizeString(value) {
   if (value === null || value === undefined) return "";
   return String(value).trim().toLowerCase();
@@ -75,6 +106,7 @@ export const evaluacionRenderModule = {
     this.state.currentUser = currentUser ?? (await fetchCurrentUser());
     this.state.evaluacionId = evaluacionId;
     this.selectors = resolveSelectors();
+    this.ensureModal();
 
     if (!this.state.currentUser) {
       console.warn("No se encontró un usuario autenticado para el módulo de evaluaciones.");
@@ -115,9 +147,7 @@ export const evaluacionRenderModule = {
     try {
       const { data: evaluacion, error } = await supabaseDb
         .from("evaluaciones")
-        .select(
-          "id,titulo,descripcion,instrucciones,intentos_max,tiempo_limite,activo,leccion_id,calificacion_minima"
-        )
+        .select("id,titulo,descripcion,instrucciones,intentos_max,tiempo_limite,activo,leccion_id")
         .eq("id", evaluacionId)
         .maybeSingle();
 
@@ -228,8 +258,9 @@ export const evaluacionRenderModule = {
     }
 
     const versionesUtilizadas = new Set(this.state.intentosPrevios.map((intento) => intento.version_id).filter(Boolean));
-    const versionDisponible = this.state.versiones.find((version) => !versionesUtilizadas.has(version.id));
-    const selected = versionDisponible ?? this.state.versiones[0] ?? null;
+    const versionesDisponibles = this.state.versiones.filter((version) => !versionesUtilizadas.has(version.id));
+    const pool = versionesDisponibles.length ? versionesDisponibles : this.state.versiones;
+    const selected = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
     this.state.pendingVersionId = selected?.id ?? null;
   },
 
@@ -247,7 +278,8 @@ export const evaluacionRenderModule = {
       return;
     }
 
-    const preguntasIds = ensureArray(version.preguntas).map((value) => (typeof value === "object" && value?.id ? value.id : value));
+    const preguntasOrdenadas = parsePreguntas(version.preguntas).sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
+    const preguntasIds = preguntasOrdenadas.map((entry) => entry.id);
 
     if (!preguntasIds.length) {
       this.state.preguntas = [];
@@ -268,8 +300,8 @@ export const evaluacionRenderModule = {
     }
 
     const preguntasMap = new Map((data ?? []).map((pregunta) => [pregunta.id, pregunta]));
-    this.state.preguntas = preguntasIds
-      .map((id) => preguntasMap.get(id))
+    this.state.preguntas = preguntasOrdenadas
+      .map((entry) => preguntasMap.get(entry.id))
       .filter((pregunta) => Boolean(pregunta));
 
     if (!this.state.preguntas.length) {
@@ -326,10 +358,13 @@ export const evaluacionRenderModule = {
     this.state.intentoActual = data ?? null;
     if (this.state.intentoActual) {
       this.state.intentosPrevios = [...this.state.intentosPrevios, this.state.intentoActual];
+      this.state.pendingVersionId = this.state.intentoActual.version_id;
+      await this.loadPreguntas();
     }
 
     this.updateAttemptInformation();
     this.renderExam();
+    this.openModal();
   },
 
   renderExam() {
@@ -420,6 +455,8 @@ export const evaluacionRenderModule = {
     if (formWasMissing && this.selectors.examForm) {
       this.selectors.examForm.addEventListener("submit", (event) => this.submitExam(event));
     }
+
+    this.attachFormToModal(form);
 
     this.showMessage("Responde todas las preguntas y envía la evaluación para obtener tu calificación.");
   },
@@ -531,7 +568,8 @@ export const evaluacionRenderModule = {
         intento_id: this.state.intentoActual.id,
         pregunta_id: pregunta.id,
         respuesta: respuestaPayload,
-        correcta
+        correcta,
+        created_at: new Date().toISOString()
       });
     }
 
@@ -609,7 +647,7 @@ export const evaluacionRenderModule = {
     const aciertos = this.state.respuestasActuales.filter((respuesta) => respuesta.correcta).length;
     const calificacion = totalPreguntas > 0 ? (aciertos / totalPreguntas) * 100 : 0;
     const calificacionFinal = Math.round(calificacion * 100) / 100;
-    const passingScore = Number(this.state.evaluacion?.calificacion_minima ?? 0) || 80;
+    const passingScore = CALIFICACION_MINIMA_DEFAULT;
     const aprobado = calificacionFinal >= passingScore;
 
     const { error } = await supabaseDb
@@ -751,6 +789,63 @@ export const evaluacionRenderModule = {
       this.selectors.feedbackPanel.textContent = message;
     } else {
       container.setAttribute("data-status-message", message);
+    }
+  },
+
+  ensureModal() {
+    if (this.state.modal) return;
+
+    let modal = document.querySelector("#evaluacion-modal");
+    if (!modal) {
+      modal = document.createElement("dialog");
+      modal.id = "evaluacion-modal";
+      modal.classList.add("dialog", "dialog--xl");
+
+      const content = document.createElement("div");
+      content.classList.add("dialog__content");
+
+      const header = document.createElement("header");
+      header.classList.add("dialog__header");
+      const title = document.createElement("h2");
+      title.textContent = "Resolviendo evaluación";
+      const closeBtn = document.createElement("button");
+      closeBtn.type = "button";
+      closeBtn.classList.add("btn", "btn--ghost");
+      closeBtn.textContent = "×";
+      closeBtn.addEventListener("click", () => modal.close());
+      header.append(title, closeBtn);
+
+      const body = document.createElement("section");
+      body.classList.add("dialog__body");
+      body.setAttribute("data-evaluacion-modal-body", "true");
+
+      const footer = document.createElement("footer");
+      footer.classList.add("dialog__footer");
+      const submitBtn = document.createElement("button");
+      submitBtn.type = "button";
+      submitBtn.classList.add("btn", "btn--primary");
+      submitBtn.textContent = "Entregar evaluación";
+      submitBtn.addEventListener("click", (event) => this.submitExam(event));
+      footer.append(submitBtn);
+
+      content.append(header, body, footer);
+      modal.append(content);
+      document.body.append(modal);
+    }
+
+    this.state.modal = modal;
+    this.state.modalContent = modal.querySelector("[data-evaluacion-modal-body]");
+  },
+
+  attachFormToModal(form) {
+    if (!this.state.modal || !this.state.modalContent) return;
+    this.state.modalContent.replaceChildren(form);
+  },
+
+  openModal() {
+    if (!this.state.modal) return;
+    if (!this.state.modal.open) {
+      this.state.modal.showModal();
     }
   },
 

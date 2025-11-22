@@ -142,7 +142,7 @@ export const alumnosModule = {
 
       const { data: asignaciones, error: asignacionesError } = await supabaseDb
         .from("cursos_usuarios")
-        .select("curso_id,progreso,estado")
+        .select("curso_id,progreso,estatus")
         .eq("usuario_id", this.state.currentUser?.id ?? "");
 
       if (asignacionesError) console.info("No hay tabla de asignaciones específica", asignacionesError.message);
