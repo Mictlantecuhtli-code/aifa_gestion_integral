@@ -1,5 +1,7 @@
 import { supabaseDb } from "../supabaseClient.js";
 
+const CALIFICACION_MINIMA_DEFAULT = 60;
+
 function createInitialState() {
   return {
     currentUser: null,
@@ -52,6 +54,33 @@ function ensureArray(value) {
   if (Array.isArray(value)) return value;
   if (value === null || value === undefined) return [];
   return [value];
+}
+
+function parsePreguntas(versionPreguntas) {
+  let preguntas = versionPreguntas;
+
+  if (typeof preguntas === "string") {
+    try {
+      preguntas = JSON.parse(preguntas);
+    } catch (_error) {
+      return [];
+    }
+  }
+
+  return ensureArray(preguntas)
+    .map((item, index) => {
+      const baseOrden = index + 1;
+
+      if (item && typeof item === "object") {
+        return {
+          id: item.pregunta_id ?? item.id ?? item.preguntaId ?? item.pregunta ?? null,
+          orden: item.orden ?? item.order ?? baseOrden
+        };
+      }
+
+      return { id: item ?? null, orden: baseOrden };
+    })
+    .filter((entry) => Boolean(entry.id));
 }
 
 function normalizeString(value) {
@@ -115,9 +144,7 @@ export const evaluacionRenderModule = {
     try {
       const { data: evaluacion, error } = await supabaseDb
         .from("evaluaciones")
-        .select(
-          "id,titulo,descripcion,instrucciones,intentos_max,tiempo_limite,activo,leccion_id,calificacion_minima"
-        )
+        .select("id,titulo,descripcion,instrucciones,intentos_max,tiempo_limite,activo,leccion_id")
         .eq("id", evaluacionId)
         .maybeSingle();
 
@@ -247,7 +274,8 @@ export const evaluacionRenderModule = {
       return;
     }
 
-    const preguntasIds = ensureArray(version.preguntas).map((value) => (typeof value === "object" && value?.id ? value.id : value));
+    const preguntasOrdenadas = parsePreguntas(version.preguntas).sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
+    const preguntasIds = preguntasOrdenadas.map((entry) => entry.id);
 
     if (!preguntasIds.length) {
       this.state.preguntas = [];
@@ -268,8 +296,8 @@ export const evaluacionRenderModule = {
     }
 
     const preguntasMap = new Map((data ?? []).map((pregunta) => [pregunta.id, pregunta]));
-    this.state.preguntas = preguntasIds
-      .map((id) => preguntasMap.get(id))
+    this.state.preguntas = preguntasOrdenadas
+      .map((entry) => preguntasMap.get(entry.id))
       .filter((pregunta) => Boolean(pregunta));
 
     if (!this.state.preguntas.length) {
@@ -308,7 +336,8 @@ export const evaluacionRenderModule = {
       version_id: this.state.pendingVersionId,
       intento_num: intentoNum,
       fecha_inicio: new Date().toISOString(),
-      estado: "en_progreso"
+      estado: "en_progreso",
+      created_at: new Date().toISOString()
     };
 
     const { data, error } = await supabaseDb
@@ -531,7 +560,8 @@ export const evaluacionRenderModule = {
         intento_id: this.state.intentoActual.id,
         pregunta_id: pregunta.id,
         respuesta: respuestaPayload,
-        correcta
+        correcta,
+        created_at: new Date().toISOString()
       });
     }
 
@@ -609,7 +639,7 @@ export const evaluacionRenderModule = {
     const aciertos = this.state.respuestasActuales.filter((respuesta) => respuesta.correcta).length;
     const calificacion = totalPreguntas > 0 ? (aciertos / totalPreguntas) * 100 : 0;
     const calificacionFinal = Math.round(calificacion * 100) / 100;
-    const passingScore = Number(this.state.evaluacion?.calificacion_minima ?? 0) || 80;
+    const passingScore = CALIFICACION_MINIMA_DEFAULT;
     const aprobado = calificacionFinal >= passingScore;
 
     const { error } = await supabaseDb

@@ -117,7 +117,7 @@ export const maestrosModule = {
     try {
       const { data, error } = await supabaseDb
         .from("cursos_usuarios")
-        .select("usuario_id,curso_id,estado,progreso")
+        .select("usuario_id,curso_id,estatus,progreso")
         .in(
           "curso_id",
           this.state.cursos.map((curso) => curso.id)
