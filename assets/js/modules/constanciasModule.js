@@ -281,7 +281,7 @@ export const constanciasModule = {
 
     const intentosQuery = supabaseDb
       .from("evaluaciones_intentos")
-      .select("id,usuario_id,evaluacion_id,calificacion,estatus,created_at")
+      .select("id,usuario_id,evaluacion_id,calificacion,estado,created_at")
       .order("created_at", { ascending: false });
 
     const [{ data: evaluaciones, error: evError }, { data: intentos, error: intError }] = await Promise.all([evaluacionesQuery, intentosQuery]);
