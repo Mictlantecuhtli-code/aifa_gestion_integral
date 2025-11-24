@@ -341,7 +341,6 @@ export const evaluacionRenderModule = {
       intento_num: intentoNum,
       fecha_inicio: new Date().toISOString(),
       estado: "en_progreso",
-      created_at: new Date().toISOString()
     };
 
     const { data, error } = await supabaseDb
